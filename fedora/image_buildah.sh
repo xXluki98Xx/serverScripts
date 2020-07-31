@@ -74,7 +74,9 @@ case $menu in
         4) # youtube-dl-server
             echo starting build: ...
             cd youtube-dl-server/build && git pull --all && git checkout feature && git pull --all
+            sed 's_#buildah run $container -- bash_buildah run $container -- bash_' -i youtube-dl-server/build/buildah.sh
             ./buildah.sh
+            sed 's_buildah run $container -- bash_#buildah run $container -- bash_' -i youtube-dl-server/build/buildah.sh
             git checkout master
             podman tag youtube-dl-server ydl-feature
             cd ~/
