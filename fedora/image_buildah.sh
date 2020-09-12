@@ -86,8 +86,7 @@ case $menu in
             echo starting build: ...
             cd buildah_sharry && git pull
 
-            echo Version?
-            read version
+            version=$(curl -sL https://api.github.com/repos/eikek/sharry/releases/latest | jq -r ".tag_name" | cut -d "/" -f2)
 
             ./build.sh
             podman tag sharry $username/sharry:latest
