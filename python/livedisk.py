@@ -13,38 +13,9 @@ import click
 import safer
 from exitstatus import ExitStatus
 
+# --------------- # help functions
 
-@click.group()
-def main():
-    print("Starting Syncing")
-
-@main.command(help="Enter an List with URL for LiveDisk Sync")
-@click.argument("list_livedisc", nargs= -1)
-@click.option("--bandwidth", default="0", help="Enter an Bandwidthlimit like 1.5M")
-def ld_list(list_livedisc, bandwidth):
-    for dList in list_livedisc:
-        with safer.open(dList) as f:
-            urlList = f.readlines()
-            urlList = [x.strip() for x in urlList]
-
-    try:
-        random.shuffle(urlList)
-        for item in urlList:
-            if item != "" :
-                print("download: " + item)
-                download_livedisk(str(item),bandwidth)
-
-    except KeyboardInterrupt:
-        print("\nInterupt by User\n")
-        exit()
-
-    except:
-        print("error: " + sys.exc_info()[0])
-
-    finally:
-        sys.exit(ExitStatus.success)
-
-# --------------- # helper # --------------- #
+# ----- # ----- # titleFormating
 def getTitleFormated(title):
     newTitle = ""
 
@@ -65,6 +36,8 @@ def getTitleFormated(title):
 
     return newTitle
 
+
+# ----- # ----- # human readable storage info
 def bytes2human(n):
     symbols = ('K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y')
     prefix = {}
@@ -76,6 +49,8 @@ def bytes2human(n):
             return '%.1f%s' % (value, s)
     return "%sB" % n
 
+
+# ----- # ----- # removing outdated files
 def removeFiles(path, file_count_prev):
     print("\nRemoving old files")
 
@@ -120,7 +95,62 @@ def removeFiles(path, file_count_prev):
 
     print("finished\n")
 
-# --------------- # download # --------------- #
+
+# ----- # ----- # updating moduls
+def update():
+    command = ['pip3', 'install', '--upgrade', 'click', 'safer', 'exitstatus']
+    proc = subprocess.Popen(
+        command, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+
+    output, error = proc.communicate()
+
+    return {
+        "output": output.decode('ascii'),
+        "error": error.decode('ascii'),
+    }
+
+
+# --------------- # main functions
+@click.group()
+def main():
+    print('Updating Packages')
+    updateResult = update()
+    print(updateResult['output'])
+    print(updateResult['error'])
+
+    print("Starting Syncing")
+
+
+# ----- # ----- # livedisk
+@main.command(help="Enter an List with URL for LiveDisk Sync")
+@click.argument("list_livedisc", nargs= -1)
+@click.option("--bandwidth", default="0", help="Enter an Bandwidthlimit like 1.5M")
+def ld_list(list_livedisc, bandwidth):
+    for dList in list_livedisc:
+        with safer.open(dList) as f:
+            urlList = f.readlines()
+            urlList = [x.strip() for x in urlList]
+
+    try:
+        random.shuffle(urlList)
+        for item in urlList:
+            if item != "" :
+                print("download: " + item)
+                download_livedisk(str(item),bandwidth)
+
+    except KeyboardInterrupt:
+        print("\nInterupt by User\n")
+        exit()
+
+    except:
+        print("error: " + sys.exc_info()[0])
+
+    finally:
+        sys.exit(ExitStatus.success)
+
+
+# --------------- # download
 def download_livedisk(content,bandwidth):
     try:
         if ";" in content:
@@ -184,6 +214,7 @@ def download_livedisk(content,bandwidth):
     except:
         print("error: " + sys.exc_info()[0])
 
-# --------------- # download # --------------- #
+
+# --------------- # main # --------------- #
 if __name__ == "__main__":
     main()
