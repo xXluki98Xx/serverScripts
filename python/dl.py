@@ -102,7 +102,7 @@ def removeFiles(path, file_count_prev):
 
 # ----- # ----- # updating moduls
 def update():
-    command = ['pip3', 'install', '--upgrade', 'click', 'safer', 'exitstatus', 'beautifulsoup4']
+    command = ['pip3', 'install', '-r', 'requirements.txt']
     proc = subprocess.Popen(
         command, stdout=subprocess.PIPE, stderr=subprocess.PIPE
     )
@@ -142,17 +142,23 @@ def extractor(content):
 @click.option("--retries", default=5, help="Enter an Number for Retries")
 @click.option("--min-sleep", default=2, help="Enter an Number for min-Sleep between retries/ downloads")
 @click.option("--max-sleep", default=15, help="Enter an Number for max-Sleep between retries/ downloads")
-@click.option("-bw","--bandwidth", help="Enter an Bandwidthlimit like 1.5M")
+@click.option("-bw","--bandwidth", default="0", help="Enter an Bandwidthlimit like 1.5M")
 def main(retries, min_sleep, max_sleep, bandwidth, axel):
     print('Updating Packages')
     updateResult = update()
     print(updateResult['output'])
     print(updateResult['error'])
 
+    loadConfig()
+
     global parameters
+    global wget_bandwidth
+
+    wget_bandwidth = bandwidth
+
     parameters = "--retries {retries} --min-sleep-interval {min_sleep} --max-sleep-interval {max_sleep} -c".format(retries=retries, min_sleep=min_sleep, max_sleep=max_sleep)
     
-    if bandwidth:
+    if bandwidth != "0":
         parameters = parameters + " --limit-rate {}".format(bandwidth)
     
     if axel:
@@ -272,7 +278,7 @@ def list_youtube_dl(list_youtube_dl):
 
 # --------------- # download
 
-# ----- # ----- # wget utils
+# ----- # ----- # wget
 def download_wget(content,bandwidth):
     try:
         if ";" in content:
@@ -337,6 +343,62 @@ def download_wget(content,bandwidth):
         print("error: " + sys.exc_info()[0])
 
 
+# ----- # ----- # wget single
+def download_wget_single(content):
+    try:
+        path = os.getcwd()
+        wget = 'wget -P {dir} -r -c -w 5 --random-wait --no-http-keep-alive --limit-rate={bw} -e robots=off -np -nd -nH -A "*.iso" -A "*.raw.xz" {url}'.format(dir=path,url=content, bw=wget_bandwidth)
+        regex = re.compile('[^0-9.]')
+
+        # file size
+        fileSize = subprocess.getoutput('wget "' + content + '" --spider --server-response -O - 2>&1| sed -ne "/Content-Length/{s/.*: //;p}"')
+        # print(bytes2human(int(fileSize)))
+
+        # free storage
+        freeStorage = shutil.disk_usage(path).free
+        # print(bytes2human(int(freeStorage)))
+
+        if (int(freeStorage) >= int(fileSize)):
+
+            i=0
+            returned_value = ""
+
+            while i < 3:
+                returned_value = os.system("echo \'" + wget + "\' >&1 | bash")
+
+                if returned_value > 0:
+                    if returned_value == 2048:
+                        return returned_value
+                    else:
+                        print("Error Code: " + str(returned_value))
+                        i += 1
+                        timer = random.randint(200,1000)/100
+                        print("sleep for " + str(timer) + "s")
+                        time.sleep(timer)
+
+                        if i == 3:
+                            print("This was the Command: \n%s" % wget)
+                            return returned_value
+
+                else:
+                    removeFiles(path, file_count_prev)
+                    return returned_value
+
+        else:
+            print("\nnot enough space")
+            print("Directory size: " + bytes2human(int(fileSize)))
+            print("free Space: " + bytes2human(int(freeStorage)))
+            removeFiles(path, file_count_prev)
+            return 507
+
+    except KeyboardInterrupt:
+        print("\nInterupt by User\n")
+        exit()
+
+    except:
+        print("error: " + sys.exc_info()[0])
+
+
 # ----- # ----- # youtube-dl
 def download_youtube_dl(content, parameters, output):
     ydl = 'youtube-dl {parameter} {output} "{url}"'.format(parameter=parameters, output=output, url=content)
@@ -367,10 +429,8 @@ def download_youtube_dl(content, parameters, output):
 @click.argument('url', nargs=-1)
 def url(url):
     repeat = True
-    loadConfig()
 
     while repeat:
-      
         if url != "":
             for item in url:
                 extractor(item)
@@ -382,16 +442,47 @@ def url(url):
             except KeyboardInterrupt:
                 pass
 
-            try:
-                answer = input("\nDo you wish another Turn? (y | n):\n")
-                if ("y" in answer) :
-                    repeat = True
-                    url = ""
-                else:
-                    repeat = False
-
-            except KeyboardInterrupt:
+        try:
+            answer = input("\nDo you wish another Turn? (y | n):\n")
+            if ("y" in answer) :
+                repeat = True
+                url = ""
+            else:
                 repeat = False
+
+        except KeyboardInterrupt:
+            repeat = False
+
+
+# ----- # ----- # url
+@main.command(help="Enter an URL")
+@click.argument('wget', nargs=-1)
+def wget(wget):
+    repeat = True
+
+    while repeat:
+        if wget != "":
+            for item in wget:
+                print(item)
+                download_wget_single(item)
+            wget = ""
+        else:
+            try:
+                url = input("\nPlease enter the Url:\n")
+                download_wget_single(url)
+            except KeyboardInterrupt:
+                pass
+
+        try:
+            answer = input("\nDo you wish another Turn? (y | n):\n")
+            if ("y" in answer) :
+                repeat = True
+                wget = ""
+            else:
+                repeat = False
+
+        except KeyboardInterrupt:
+            repeat = False
 
 
 # --------------- # media hoster
