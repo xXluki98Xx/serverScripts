@@ -1,6 +1,5 @@
-#!/bin/env python3
+#!/usr/bin/env python3
 
-import argparse
 import datetime
 import os
 import random
@@ -18,6 +17,7 @@ from exitstatus import ExitStatus
 
 
 # --------------- # help functions
+pathToRoot = "/Users/lramm/Desktop/git/github/serverScripts/python/"
 
 # ----- # ----- # titleFormating
 def getTitleFormated(title):
@@ -30,7 +30,7 @@ def getTitleFormated(title):
     else:
         newTitle = title
 
-    newTitle = newTitle.casefold().replace(" ", "-").replace("_","-").replace("/","")
+    newTitle = newTitle.casefold().replace(" ", "-").replace("_","-").replace("/","").replace("`", "-").replace(".","").replace(":","")
 
     while newTitle.endswith('-'):
         newTitle = newTitle[:-1]
@@ -102,38 +102,39 @@ def removeFiles(path, file_count_prev):
 
 # ----- # ----- # updating moduls
 def update():
-    command = ['pip3', 'install', '-r', 'requirements.txt']
+    print('Updating Packages')
+
+    command = ['pip3', 'install', '-r', pathToRoot + 'requirements.txt']
     proc = subprocess.Popen(
         command, stdout=subprocess.PIPE, stderr=subprocess.PIPE
     )
 
     output, error = proc.communicate()
 
-    return {
-        "output": output.decode('ascii'),
-        "error": error.decode('ascii'),
-    }
+    print(output.decode('ascii'))
+    print(error.decode('ascii'))
 
 
-# ----- # ----- # extractors
-def extractor(content):
-    mostly = ['fruithosted', 'oloadcdn', 'verystream', 'vidoza', 'vivo']
+# ----- #
+def loadConfig():
+    global data
+    with open(pathToRoot + "env") as json_file:
+        data = json.load(json_file)
 
-    for domain in mostly:
-        if domain in content : return host_mostly(content)
 
-    if ("animeholics" in content) : return host_animeholics(content)
-    elif ("haho.moe" in content) : return host_hahomoe(content)
-    elif ("sxyprn" in content) : return host_sxyprn(content)
-    elif ("porngo" in content) : return host_porngo(content)
-    elif ("xvideos" in content) : return host_xvideos(content)
-
-    elif ("udemy" in content) : return host_udemy(content)
-    elif ("anime-on-demand" in content) : return host_animeondemand(content)
-    elif ("vimeo" in content) : return host_vimeo(content)
-    elif ("cloudfront" in content) : return host_cloudfront(content)
-
-    else : return host_default(content)
+# ----- #
+def testWebpage(url):
+  req = urllib.request.Request(url, headers = {"User-Agent": "Mozilla/5.0"})
+  try:
+        conn = urllib.request.urlopen(req)
+  except urllib.error.HTTPError as e:
+        print('HTTPError: {}'.format(e.code))
+        return e.code
+  except urllib.error.URLError as e:
+        print('URLError: {}'.format(e.reason))
+        return e.code
+  else:
+        return 0
 
 
 # --------------- # main functions
@@ -144,11 +145,7 @@ def extractor(content):
 @click.option("--max-sleep", default=15, help="Enter an Number for max-Sleep between retries/ downloads")
 @click.option("-bw","--bandwidth", default="0", help="Enter an Bandwidthlimit like 1.5M")
 def main(retries, min_sleep, max_sleep, bandwidth, axel):
-    print('Updating Packages')
-    updateResult = update()
-    print(updateResult['output'])
-    print(updateResult['error'])
-
+    # updateResult = update()
     loadConfig()
 
     global parameters
@@ -157,50 +154,57 @@ def main(retries, min_sleep, max_sleep, bandwidth, axel):
     wget_bandwidth = bandwidth
 
     parameters = "--retries {retries} --min-sleep-interval {min_sleep} --max-sleep-interval {max_sleep} -c".format(retries=retries, min_sleep=min_sleep, max_sleep=max_sleep)
-    
+
     if bandwidth != "0":
         parameters = parameters + " --limit-rate {}".format(bandwidth)
-    
+
     if axel:
         parameters = parameters + " --external-downloader axel"
 
 
-# ----- #
-def loadConfig():
-    global data
-    with open('env') as json_file:
-        data = json.load(json_file)
+# - - - - - # - - - - - # - - - - - # - - - - - #
+# - - - - - # - - - - - # - - - - - # - - - - - #
+# - - - - - # - - - - - # - - - - - # - - - - - #
+# - - - - - #                       # - - - - - #
+# - - - - - #       wget-download   # - - - - - #
+# - - - - - #                       # - - - - - #
+# - - - - - # - - - - - # - - - - - # - - - - - #
+# - - - - - # - - - - - # - - - - - # - - - - - #
+# - - - - - # - - - - - # - - - - - # - - - - - #
 
 
-# ----- # ----- # livedisk
-@main.command(help="Enter an List with URL for LiveDisk Sync")
-@click.argument("list_livedisc", nargs= -1)
-@click.option("--bandwidth", default="0", help="Enter an Bandwidthlimit like 1.5M")
-def list_livedisk(list_livedisc, bandwidth):
-    for dList in list_livedisc:
-        with safer.open(dList) as f:
-            urlList = f.readlines()
-            urlList = [x.strip() for x in urlList]
+# ----- # ----- # single url
+@main.command(help="Enter an URL")
+@click.argument('wget', nargs=-1)
+def wget(wget):
+    repeat = True
 
-    try:
-        random.shuffle(urlList)
-        for item in urlList:
-            if item != "" :
-                print("download: " + item)
-                download_wget(str(item),bandwidth)
+    while repeat:
+        if wget != "":
+            for item in wget:
+                print(item)
+                download_wget_single(item)
+            wget = ""
+        else:
+            try:
+                url = input("\nPlease enter the Url:\n")
+                download_wget_single(url)
+            except KeyboardInterrupt:
+                pass
 
-    except KeyboardInterrupt:
-        print("\nInterupt by User\n")
-        exit()
+        try:
+            answer = input("\nDo you wish another Turn? (y | n):\n")
+            if ("y" in answer) :
+                repeat = True
+                wget = ""
+            else:
+                repeat = False
 
-    except:
-        print("error: " + sys.exc_info()[0])
-
-    finally:
-        sys.exit(ExitStatus.success)
+        except KeyboardInterrupt:
+            repeat = False
 
 
-# ----- # ----- # wget
+# ----- # ----- # url list
 @main.command(help="Enter an List with URL for wget Sync")
 @click.argument("list_wget", nargs= -1)
 @click.option("--bandwidth", default="0", help="Enter an Bandwidthlimit like 1.5M")
@@ -239,46 +243,91 @@ def list_wget(list_wget, bandwidth):
         sys.exit(ExitStatus.success)
 
 
-# ----- # ----- # youtube-dl
-@main.command(help="Enter an List with URL for Youtube-DL")
-def list_youtube_dl(list_youtube_dl):
-    for dList in list_youtube_dl:
+# ----- # ----- # url list for livedisks
+@main.command(help="Enter an List with URL for LiveDisk Sync")
+@click.argument("list_livedisc", nargs= -1)
+@click.option("--bandwidth", default="0", help="Enter an Bandwidthlimit like 1.5M")
+def list_livedisk(list_livedisc, bandwidth):
+    for dList in list_livedisc:
         with safer.open(dList) as f:
             urlList = f.readlines()
             urlList = [x.strip() for x in urlList]
 
-    urlCopy = urlList.copy()
-
     try:
-        for item in urlCopy:
+        random.shuffle(urlList)
+        for item in urlList:
             if item != "" :
-                print(item)
-
-                if download_youtube_dl(str(item)) == 0:
-                    urlList.remove(item)
-                    print("removed: " + str(item) + " | rest list " + str(urlList))
+                print("download: " + item)
+                download_wget(str(item),bandwidth)
 
     except KeyboardInterrupt:
         print("\nInterupt by User\n")
-        with safer.open(dList, 'w') as f:
-            for url in urlList:
-                f.write("%s\n" % url)
         exit()
 
     except:
         print("error: " + sys.exc_info()[0])
 
     finally:
-        # will always be executed last, with or without exception
-        with safer.open(dList, 'w') as f:
-            for url in urlList:
-                f.write("%s\n" % url)
         sys.exit(ExitStatus.success)
 
 
-# --------------- # download
+# ----- # ----- # single download
+# TODO
+def download_wget_single(content):
+    try:
+        path = os.getcwd()
+        wget = 'wget -P {dir} -r -c -w 5 --random-wait --no-http-keep-alive --limit-rate={bw} -e robots=off -np -nd -nH -A "*.iso" -A "*.raw.xz" {url}'.format(dir=path,url=content, bw=wget_bandwidth)
 
-# ----- # ----- # wget
+        # file size
+        fileSize = subprocess.getoutput('wget "' + content + '" --spider --server-response -O - 2>&1| sed -ne "/Content-Length/{s/.*: //;p}"')
+        # print(bytes2human(int(fileSize)))
+
+        # free storage
+        freeStorage = shutil.disk_usage(path).free
+        # print(bytes2human(int(freeStorage)))
+
+        if (int(freeStorage) >= int(fileSize)):
+
+            i=0
+            returned_value = ""
+
+            while i < 3:
+                returned_value = os.system("echo \'" + wget + "\' >&1 | bash")
+
+                if returned_value > 0:
+                    if returned_value == 2048:
+                        return returned_value
+                    else:
+                        print("Error Code: " + str(returned_value))
+                        i += 1
+                        timer = random.randint(200,1000)/100
+                        print("sleep for " + str(timer) + "s")
+                        time.sleep(timer)
+
+                        if i == 3:
+                            print("This was the Command: \n%s" % wget)
+                            return returned_value
+
+                else:
+                    removeFiles(path, file_count_prev)
+                    return returned_value
+
+        else:
+            print("\nnot enough space")
+            print("Directory size: " + bytes2human(int(fileSize)))
+            print("free Space: " + bytes2human(int(freeStorage)))
+            removeFiles(path, file_count_prev)
+            return 507
+
+    except KeyboardInterrupt:
+        print("\nInterupt by User\n")
+        exit()
+
+    except:
+        print("error: " + sys.exc_info()[0])
+
+
+# ----- # ----- # multi download
 def download_wget(content,bandwidth):
     try:
         if ";" in content:
@@ -290,7 +339,6 @@ def download_wget(content,bandwidth):
 
         path = os.path.join(os.getcwd(),directory)
         wget = 'wget -P {dir} -r -c -w 5 --random-wait --no-http-keep-alive --limit-rate={bw} -e robots=off -np -nd -nH -A "*.iso" -A "*.raw.xz" {url}'.format(dir=path,url=content, bw=bandwidth)
-        regex = re.compile('[^0-9.]')
 
         # file count
         path, dirs, files = next(os.walk(path))
@@ -343,88 +391,17 @@ def download_wget(content,bandwidth):
         print("error: " + sys.exc_info()[0])
 
 
-# ----- # ----- # wget single
-def download_wget_single(content):
-    try:
-        path = os.getcwd()
-        wget = 'wget -P {dir} -r -c -w 5 --random-wait --no-http-keep-alive --limit-rate={bw} -e robots=off -np -nd -nH -A "*.iso" -A "*.raw.xz" {url}'.format(dir=path,url=content, bw=wget_bandwidth)
-        regex = re.compile('[^0-9.]')
+# - - - - - # - - - - - # - - - - - # - - - - - #
+# - - - - - # - - - - - # - - - - - # - - - - - #
+# - - - - - # - - - - - # - - - - - # - - - - - #
+# - - - - - #                       # - - - - - #
+# - - - - - #   youtube-download    # - - - - - #
+# - - - - - #                       # - - - - - #
+# - - - - - # - - - - - # - - - - - # - - - - - #
+# - - - - - # - - - - - # - - - - - # - - - - - #
+# - - - - - # - - - - - # - - - - - # - - - - - #
 
-        # file size
-        fileSize = subprocess.getoutput('wget "' + content + '" --spider --server-response -O - 2>&1| sed -ne "/Content-Length/{s/.*: //;p}"')
-        # print(bytes2human(int(fileSize)))
-
-        # free storage
-        freeStorage = shutil.disk_usage(path).free
-        # print(bytes2human(int(freeStorage)))
-
-        if (int(freeStorage) >= int(fileSize)):
-
-            i=0
-            returned_value = ""
-
-            while i < 3:
-                returned_value = os.system("echo \'" + wget + "\' >&1 | bash")
-
-                if returned_value > 0:
-                    if returned_value == 2048:
-                        return returned_value
-                    else:
-                        print("Error Code: " + str(returned_value))
-                        i += 1
-                        timer = random.randint(200,1000)/100
-                        print("sleep for " + str(timer) + "s")
-                        time.sleep(timer)
-
-                        if i == 3:
-                            print("This was the Command: \n%s" % wget)
-                            return returned_value
-
-                else:
-                    removeFiles(path, file_count_prev)
-                    return returned_value
-
-        else:
-            print("\nnot enough space")
-            print("Directory size: " + bytes2human(int(fileSize)))
-            print("free Space: " + bytes2human(int(freeStorage)))
-            removeFiles(path, file_count_prev)
-            return 507
-
-    except KeyboardInterrupt:
-        print("\nInterupt by User\n")
-        exit()
-
-    except:
-        print("error: " + sys.exc_info()[0])
-
-
-# ----- # ----- # youtube-dl
-def download_youtube_dl(content, parameters, output):
-    ydl = 'youtube-dl {parameter} {output} "{url}"'.format(parameter=parameters, output=output, url=content)
-
-    i=0
-    returned_value = ""
-
-    while i < 3:
-
-        print(ydl)
-        returned_value = os.system(ydl)
-
-        if returned_value > 0:
-            i += 1
-            timer = random.randint(200,1000)/100
-            print("sleep for " + str(timer) + "s")
-            time.sleep(timer)
-
-            if i == 3:
-                print("This was the Command: \n%s" % ydl)
-                return returned_value
-        else:
-            return returned_value
-
-
-# ----- # ----- # url
+# ----- # ----- # single URL
 @main.command(help="Enter an URL")
 @click.argument('url', nargs=-1)
 def url(url):
@@ -433,6 +410,8 @@ def url(url):
     while repeat:
         if url != "":
             for item in url:
+                print(url)
+                print(item)
                 extractor(item)
             url = ""
         else:
@@ -454,35 +433,84 @@ def url(url):
             repeat = False
 
 
-# ----- # ----- # url
-@main.command(help="Enter an URL")
-@click.argument('wget', nargs=-1)
-def wget(wget):
-    repeat = True
+# ----- # ----- # list
+@main.command(help="Enter an List with URL for Youtube-DL")
+@click.argument("list_youtube_dl", nargs= -1)
+def list_youtube_dl(list_youtube_dl):
+    for dList in list_youtube_dl:
+        with safer.open(dList) as f:
+            urlList = f.readlines()
+            urlList = [x.strip() for x in urlList]
 
-    while repeat:
-        if wget != "":
-            for item in wget:
+    urlCopy = urlList.copy()
+    print("list: " + str(urlCopy))
+
+    try:
+        for item in urlCopy:
+            if item != "" :
                 print(item)
-                download_wget_single(item)
-            wget = ""
+
+                if extractor(str(item)) == 0:
+                    urlList.remove(item)
+                    print("removed: " + str(item) + " | rest list " + str(urlList))
+
+    except KeyboardInterrupt:
+        print("\nInterupt by User\n")
+        with safer.open(dList, 'w') as f:
+            for url in urlList:
+                f.write("%s\n" % url)
+        exit()
+
+    except:
+        print("error: " + sys.exc_info()[0])
+
+    finally:
+        # will always be executed last, with or without exception
+        with safer.open(dList, 'w') as f:
+            for url in urlList:
+                f.write("%s\n" % url)
+        sys.exit(ExitStatus.success)
+
+
+# ----- # ----- # extractors
+def extractor(content):
+    webpageResult = testWebpage(content)
+    if webpageResult != 0:
+        return webpageResult
+
+    mostly = ['fruithosted', 'oloadcdn', 'verystream', 'vidoza', 'vivo']
+
+    for domain in mostly:
+        if domain in content : return host_mostly(content)
+
+    if ("animeholics" in content) : return host_animeholics(content)
+
+    if ("haho.moe" in content) :
+        if (len(content.rsplit("/",1)[1]) < 3):
+            return host_hahomoe(content)
         else:
-            try:
-                url = input("\nPlease enter the Url:\n")
-                download_wget_single(url)
-            except KeyboardInterrupt:
-                pass
+            i = 1
+            while testWebpage(content+"/"+str(i)) == 0:
+                extractor(content+"/"+str(i))
+                i=i+1
 
-        try:
-            answer = input("\nDo you wish another Turn? (y | n):\n")
-            if ("y" in answer) :
-                repeat = True
-                wget = ""
-            else:
-                repeat = False
+            i = 1
+            while testWebpage(content+"/s"+str(i)) == 0:
+                extractor(content+"/s"+str(i))
+                i=i+1
 
-        except KeyboardInterrupt:
-            repeat = False
+            return 0
+
+    if ("sxyprn" in content) : return host_sxyprn(content)
+    if ("porngo" in content) : return host_porngo(content)
+    if ("xvideos" in content) : return host_xvideos(content)
+
+    if ("udemy" in content) : return host_udemy(content)
+    if ("anime-on-demand" in content) : return host_animeondemand(content)
+    if ("vimeo" in content) : return host_vimeo(content)
+    if ("cloudfront" in content) : return host_cloudfront(content)
+
+    return host_default(content)
 
 
 # --------------- # media hoster
@@ -493,7 +521,7 @@ def host_default(content):
     return download_youtube_dl(content, parameters, output)
 
 # -----
-# fruithosted, oloadcdn, verystream, vidoza, vivo, 
+# fruithosted, oloadcdn, verystream, vidoza, vivo,
 def host_mostly(content):
     if ";" in content:
         title = content.split(";",1)[1]
@@ -532,7 +560,7 @@ def host_animeholics(content):
 # -----
 def host_hanime(content):
     title = content.rsplit('?',1)[0].rsplit('/',1)[1]
-    title = getTitelFormated(title)
+    title = getTitleFormated(title)
     output = '-f best -o "{title}.%(ext)s"'.format(title=title)
     return download_youtube_dl(content, parameters, output)
 
@@ -554,8 +582,10 @@ def host_hahomoe(content):
     m = titleRegex.search(str(webpage))
     if m:
         title = m.group(1).rsplit(' ',4)[0]
+    else:
+        title = ""
 
-    title = getTitelFormated(title)
+    title = getTitleFormated(title)
     output = '-f best -o "{title}.mp4"'.format(title=title)
     return download_youtube_dl(url, parameters, output)
 
@@ -575,21 +605,21 @@ def host_sxyprn(content):
     if "#" in title:
         title = title.split('-#',1)[0]
 
-    title = getTitelFormated(title)
+    title = getTitleFormated(title)
     output = '-f best -o "{title}.%(ext)s"'.format(title=title)
     return download_youtube_dl(content, parameters, output)
 
 # -----
 def host_xvideos(content):
     title = content.rsplit("/",1)[1]
-    title = getTitelFormated(title)
+    title = getTitleFormated(title)
     output = '-f best -o "{title}.mp4"'.format(title=title)
     return download_youtube_dl(content, parameters, output)
 
 # -----
 def host_porngo(content):
     title = content.rsplit('/',1)[0].rsplit('/',1)[1]
-    title = getTitelFormated(title)
+    title = getTitleFormated(title)
     output = '-f best -o "{title}.%(ext)s"'.format(title=title)
     return download_youtube_dl(content, parameters, output)
 
@@ -635,7 +665,7 @@ def host_crunchyroll(content):
 def host_udemy(content):
     for p in data['udemy']:
         parameter = "-u " + p['username'] + " -p " + p['password'] + " " + parameters
-    
+
     title = content.split('/',4)[4].rsplit('/',5)[0]
     url = "https://www.udemy.com/" + title
     print(url)
@@ -670,6 +700,31 @@ def host_cloudfront(content):
     title = getTitleFormated(title)
     output = '-f best -o "{title}.mp4"'.format(title=title)
     return download_youtube_dl(content, parameters, output)
+
+
+# ----- # ----- # download
+def download_youtube_dl(content, parameters, output):
+    ydl = 'youtube-dl {parameter} {output} "{url}"'.format(parameter=parameters, output=output, url=content)
+
+    i=0
+    returned_value = ""
+
+    while i < 3:
+
+        print(ydl)
+        returned_value = os.system(ydl)
+
+        if returned_value > 0:
+            i += 1
+            timer = random.randint(200,1000)/100
+            print("sleep for " + str(timer) + "s")
+            time.sleep(timer)
+
+            if i == 3:
+                print("This was the Command: \n%s" % ydl)
+                return returned_value
+        else:
+            return returned_value
 
 
 # --------------- # main
