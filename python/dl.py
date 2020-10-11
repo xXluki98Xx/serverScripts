@@ -17,7 +17,6 @@ from exitstatus import ExitStatus
 
 
 # --------------- # help functions
-pathToRoot = "/Users/lramm/Desktop/git/github/serverScripts/python/"
 
 # ----- # ----- # titleFormating
 def getTitleFormated(title):
@@ -104,7 +103,9 @@ def removeFiles(path, file_count_prev):
 def update():
     print('Updating Packages')
 
-    command = ['pip3', 'install', '-r', pathToRoot + 'requirements.txt']
+    path = os.path.join(pathToRoot, 'requirements.txt')
+    command = ['pip3', 'install', '-r', path]
+
     proc = subprocess.Popen(
         command, stdout=subprocess.PIPE, stderr=subprocess.PIPE
     )
@@ -118,7 +119,10 @@ def update():
 # ----- #
 def loadConfig():
     global data
-    with open(pathToRoot + "env") as json_file:
+
+    path = os.path.join(pathToRoot, 'env')
+
+    with open(path) as json_file:
         data = json.load(json_file)
 
 
@@ -136,6 +140,22 @@ def testWebpage(url):
   else:
         return 0
 
+# ----- #
+def getRootPath():
+    global pathToRoot
+    pathToRoot = ""
+
+    path = os.getenv('PATH').split(":")
+    # print(path)
+    for subPath in path:
+        pathTest = subprocess.check_output(['find', subPath, '-name', 'dl.py']).decode('utf-8')
+        if pathTest != "":
+            pathToRoot = pathTest
+            # print(pathToRoot)
+            break
+
+    pathToRoot = pathToRoot.replace("dl.py","").rstrip('\n')
+
 
 # --------------- # main functions
 @click.group()
@@ -145,7 +165,8 @@ def testWebpage(url):
 @click.option("--max-sleep", default=15, help="Enter an Number for max-Sleep between retries/ downloads")
 @click.option("-bw","--bandwidth", default="0", help="Enter an Bandwidthlimit like 1.5M")
 def main(retries, min_sleep, max_sleep, bandwidth, axel):
-    # updateResult = update()
+    getRootPath()
+    # update()
     loadConfig()
 
     global parameters
