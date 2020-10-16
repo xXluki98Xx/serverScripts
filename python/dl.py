@@ -469,7 +469,7 @@ def list_youtube_dl(list_youtube_dl):
     try:
         for item in urlCopy:
             if item != "" :
-                print(item)
+                print("\ncurrent Download: " + item)
 
                 if extractor(str(item)) == 0:
                     urlList.remove(item)
@@ -495,7 +495,7 @@ def list_youtube_dl(list_youtube_dl):
 
 # ----- # ----- # extractors
 def extractor(content):
-    webpageResult = testWebpage(content)
+    webpageResult = testWebpage(content.split(";")[0])
     if webpageResult != 0:
         return webpageResult
 
@@ -687,6 +687,8 @@ def host_udemy(content):
     for p in data['udemy']:
         parameter = "-u " + p['username'] + " -p " + p['password'] + " " + parameters
 
+    print(parameter)
+
     title = content.split('/',4)[4].rsplit('/',5)[0]
     url = "https://www.udemy.com/" + title
     print(url)
@@ -732,7 +734,7 @@ def download_youtube_dl(content, parameters, output):
 
     while i < 3:
 
-        print(ydl)
+        # print(ydl)
         returned_value = os.system(ydl)
 
         if returned_value > 0:
