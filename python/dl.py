@@ -648,7 +648,7 @@ def host_porngo(content):
 # --------------- # Anime
 def host_animeondemand(content):
     for p in data['animeondemand']:
-        parameter = "-u " + p['username'] + " -p " + p['password'] + " " + parameters
+        parameter = "-u '" + p['username'] + "' -p '" + p['password'] + "' " + parameters
 
     if "www." not in content:
         swap = content.split('/', 2)
@@ -660,7 +660,7 @@ def host_animeondemand(content):
 # -----
 def host_wakanim(content):
     for p in data['wakanim']:
-        parameter = "-u " + p['username'] + " -p " + p['password'] + " " + parameters
+        parameter = "-u '" + p['username'] + "' -p '" + p['password'] + "' " + parameters
 
     if "www." not in content:
         swap = content.split('/', 2)
@@ -672,7 +672,7 @@ def host_wakanim(content):
 # -----
 def host_crunchyroll(content):
     for p in data['crunchyroll']:
-        parameter = "-u " + p['username'] + " -p " + p['password'] + " " + parameters
+        parameter = "-u '" + p['username'] + "' -p '" + p['password'] + "' " + parameters
 
     if "www." not in content:
         swap = content.split('/', 2)
@@ -685,7 +685,7 @@ def host_crunchyroll(content):
 # --------------- # Plattformen
 def host_udemy(content):
     for p in data['udemy']:
-        parameter = "-u " + p['username'] + " -p " + p['password'] + " " + parameters
+        parameter = "-u '" + p['username'] + "' -p '" + p['password'] + "' " + parameters
 
     print(parameter)
 
