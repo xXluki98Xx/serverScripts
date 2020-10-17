@@ -157,6 +157,20 @@ def getRootPath():
     pathToRoot = pathToRoot.replace("dl.py","").rstrip('\n')
 
 
+# ----- #
+def getUserCredentials(plattform):
+    credentialList = ['animeondemand', 'udemy']
+
+    if plattform in credentialList:
+        for p in data['animeondemand']:
+            parameter = "-u '" + p['username'] + "' -p '" + p['password'] + "' " + parameters
+
+    if cookieFile:
+        parameter = "--cookies '" + cookieFile + "' " + parameters
+
+    return parameter
+
+
 # --------------- # main functions
 @click.group()
 @click.option("-a", "--axel", default=False, is_flag=True, help="Using Axel")
@@ -164,15 +178,18 @@ def getRootPath():
 @click.option("--min-sleep", default=2, help="Enter an Number for min-Sleep between retries/ downloads")
 @click.option("--max-sleep", default=15, help="Enter an Number for max-Sleep between retries/ downloads")
 @click.option("-bw","--bandwidth", default="0", help="Enter an Bandwidthlimit like 1.5M")
-def main(retries, min_sleep, max_sleep, bandwidth, axel):
+@click.option("-cf","--cookie-file", default="", help="Enter Path to cookie File")
+def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file):
     getRootPath()
     # update()
     loadConfig()
 
     global parameters
-    global wget_bandwidth
+    global wgetBandwidth
+    global cookieFile
 
-    wget_bandwidth = bandwidth
+    wgetBandwidth = bandwidth
+    cookieFile = cookie_file
 
     parameters = "--retries {retries} --min-sleep-interval {min_sleep} --max-sleep-interval {max_sleep} -c".format(retries=retries, min_sleep=min_sleep, max_sleep=max_sleep)
 
@@ -297,7 +314,7 @@ def list_livedisk(list_livedisc, bandwidth):
 def download_wget_single(content):
     try:
         path = os.getcwd()
-        wget = 'wget -P {dir} -r -c -w 5 --random-wait --no-http-keep-alive --limit-rate={bw} -e robots=off -np -nd -nH -A "*.iso" -A "*.raw.xz" {url}'.format(dir=path,url=content, bw=wget_bandwidth)
+        wget = 'wget -P {dir} -r -c -w 5 --random-wait --no-http-keep-alive --limit-rate={bw} -e robots=off -np -nd -nH -A "*.iso" -A "*.raw.xz" {url}'.format(dir=path,url=content, bw=wgetBandwidth)
 
         # file size
         fileSize = subprocess.getoutput('wget "' + content + '" --spider --server-response -O - 2>&1| sed -ne "/Content-Length/{s/.*: //;p}"')
@@ -527,6 +544,7 @@ def extractor(content):
     if ("xvideos" in content) : return host_xvideos(content)
 
     if ("udemy" in content) : return host_udemy(content)
+    if ("crunchyroll" in content) : return host_crunchyroll(content)
     if ("anime-on-demand" in content) : return host_animeondemand(content)
     if ("vimeo" in content) : return host_vimeo(content)
     if ("cloudfront" in content) : return host_cloudfront(content)
@@ -540,6 +558,7 @@ def extractor(content):
 def host_default(content):
     output = '-f best -o "%(title)s.%(ext)s"'
     return download_youtube_dl(content, parameters, output)
+
 
 # -----
 # fruithosted, oloadcdn, verystream, vidoza, vivo,
@@ -578,12 +597,14 @@ def host_animeholics(content):
     output = '-f best -o "{title}.%(ext)s"'.format(title=title)
     return download_youtube_dl(url, parameters, output)
 
+
 # -----
 def host_hanime(content):
     title = content.rsplit('?',1)[0].rsplit('/',1)[1]
     title = getTitleFormated(title)
     output = '-f best -o "{title}.%(ext)s"'.format(title=title)
     return download_youtube_dl(content, parameters, output)
+
 
 # -----
 def host_hahomoe(content):
@@ -610,6 +631,7 @@ def host_hahomoe(content):
     output = '-f best -o "{title}.mp4"'.format(title=title)
     return download_youtube_dl(url, parameters, output)
 
+
 # -----
 def host_sxyprn(content):
     url=content
@@ -630,12 +652,14 @@ def host_sxyprn(content):
     output = '-f best -o "{title}.%(ext)s"'.format(title=title)
     return download_youtube_dl(content, parameters, output)
 
+
 # -----
 def host_xvideos(content):
     title = content.rsplit("/",1)[1]
     title = getTitleFormated(title)
     output = '-f best -o "{title}.mp4"'.format(title=title)
     return download_youtube_dl(content, parameters, output)
+
 
 # -----
 def host_porngo(content):
@@ -647,8 +671,7 @@ def host_porngo(content):
 
 # --------------- # Anime
 def host_animeondemand(content):
-    for p in data['animeondemand']:
-        parameter = "-u '" + p['username'] + "' -p '" + p['password'] + "' " + parameters
+    parameter = getUserCredentials("animeondemand")
 
     if "www." not in content:
         swap = content.split('/', 2)
@@ -656,22 +679,23 @@ def host_animeondemand(content):
 
     output = "-f 'best[format_id*=ger-Dub]' -o '%(playlist)s/episode-%(playlist_index)s.%(ext)s'"
     return download_youtube_dl(content, parameter, output)
+
+
+# -----
+def host_crunchyroll(content):
+    parameter = getUserCredentials("crunchyroll")
+
+    if "www." not in content:
+        swap = content.split('/', 2)
+        content = "https://www." + swap[2]
+
+    output = "-f 'best[format_id*=deDE]' -o '%(playlist)s/episode-%(playlist_index)s.%(ext)s'"
+    return download_youtube_dl(content, parameter, output)
+
 
 # -----
 def host_wakanim(content):
     for p in data['wakanim']:
-        parameter = "-u '" + p['username'] + "' -p '" + p['password'] + "' " + parameters
-
-    if "www." not in content:
-        swap = content.split('/', 2)
-        content = "https://www." + swap[2]
-
-    output = "-f 'best[format_id*=ger-Dub]' -o '%(playlist)s/episode-%(playlist_index)s.%(ext)s'"
-    return download_youtube_dl(content, parameter, output)
-
-# -----
-def host_crunchyroll(content):
-    for p in data['crunchyroll']:
         parameter = "-u '" + p['username'] + "' -p '" + p['password'] + "' " + parameters
 
     if "www." not in content:
@@ -695,6 +719,7 @@ def host_udemy(content):
 
     output = "-f best -o '%(playlist)s - {title}/%(chapter_number)s-%(chapter)s/%(playlist_index)s-%(title)s.%(ext)s'".format(title=title)
     return download_youtube_dl(url, parameter, output)
+
 
 # -----
 def host_vimeo(content):
