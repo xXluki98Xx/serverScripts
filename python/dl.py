@@ -788,4 +788,10 @@ def download_youtube_dl(content, parameters, output):
 
 # --------------- # main
 if __name__ == "__main__":
+
+    start_time = datetime.datetime.now()
+
     main()
+
+    time_elapsed = datetime.datetime.now() - start_time
+    print('\nTime elapsed (hh:mm:ss.ms): {}'.format(time_elapsed))
