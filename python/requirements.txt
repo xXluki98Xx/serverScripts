@@ -3,4 +3,3 @@ exitstatus
 click
 beautifulsoup4
 youtube-dl
-axel
