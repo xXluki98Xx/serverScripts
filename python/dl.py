@@ -171,6 +171,12 @@ def getUserCredentials(plattform):
     return parameter
 
 
+# ----- #
+def getLanguage(plattform):
+    if plattform == "crunchyroll":
+        if syncLang == "de": return "deDE"
+
+
 # --------------- # main functions
 @click.group()
 @click.option("-a", "--axel", default=False, is_flag=True, help="Using Axel")
@@ -179,7 +185,9 @@ def getUserCredentials(plattform):
 @click.option("--max-sleep", default=15, help="Enter an Number for max-Sleep between retries/ downloads")
 @click.option("-bw","--bandwidth", default="0", help="Enter an Bandwidthlimit like 1.5M")
 @click.option("-cf","--cookie-file", default="", help="Enter Path to cookie File")
-def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file):
+@click.option("-sl","--sync-lang", default="de", help="Enter language Code (de / en)")
+
+def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file, sync_lang):
     getRootPath()
     # update()
     loadConfig()
@@ -187,9 +195,11 @@ def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file):
     global parameters
     global wgetBandwidth
     global cookieFile
+    global syncLang
 
     wgetBandwidth = bandwidth
     cookieFile = cookie_file
+    syncLang = sync_lang
 
     parameters = "--retries {retries} --min-sleep-interval {min_sleep} --max-sleep-interval {max_sleep} -c".format(retries=retries, min_sleep=min_sleep, max_sleep=max_sleep)
 
@@ -684,12 +694,13 @@ def host_animeondemand(content):
 # -----
 def host_crunchyroll(content):
     parameter = getUserCredentials("crunchyroll")
+    lang = getLanguage("crunchyroll")
 
     if "www." not in content:
         swap = content.split('/', 2)
         content = "https://www." + swap[2]
 
-    output = "-f 'best[format_id*=deDE]' -o '%(playlist)s/episode-%(playlist_index)s.%(ext)s'"
+    output = "-i -f 'best[format_id*=adaptive_hls-audio-{language}][format_id!=hardsub]' -o '%(playlist)s/season-%(season_number)s_episode-%(episode_number)s_%(episode)s.%(ext)s'".format(language=lang)
     return download_youtube_dl(content, parameter, output)
 
 
