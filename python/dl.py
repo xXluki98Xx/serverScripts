@@ -13,6 +13,8 @@ import click
 import safer
 import bs4
 import json
+import youtube_dl
+
 from exitstatus import ExitStatus
 
 
@@ -29,7 +31,7 @@ def getTitleFormated(title):
     else:
         newTitle = title
 
-    newTitle = newTitle.casefold().replace(" ", "-").replace("_","-").replace("/","").replace("`", "-").replace(".","").replace(":","")
+    newTitle = formating(newTitle)
 
     while newTitle.endswith('-'):
         newTitle = newTitle[:-1]
@@ -38,6 +40,16 @@ def getTitleFormated(title):
         newTitle = newTitle[1:]
 
     return newTitle
+
+
+# ----- # ----- # format
+def formating(text):
+    swap = text.casefold()
+
+    swap = swap.replace(" ", "-").replace("_","-").replace("`", "-")
+    swap = swap.replace("/","").replace(".","").replace(":","")
+
+    return swap
 
 
 # ----- # ----- # human readable storage info
@@ -180,14 +192,14 @@ def getLanguage(plattform):
 # --------------- # main functions
 @click.group()
 @click.option("-a", "--axel", default=False, is_flag=True, help="Using Axel")
+@click.option("-p", "--playlist", default=False, is_flag=True, help="Playlist")
 @click.option("--retries", default=5, help="Enter an Number for Retries")
 @click.option("--min-sleep", default=2, help="Enter an Number for min-Sleep between retries/ downloads")
 @click.option("--max-sleep", default=15, help="Enter an Number for max-Sleep between retries/ downloads")
 @click.option("-bw","--bandwidth", default="0", help="Enter an Bandwidthlimit like 1.5M")
 @click.option("-cf","--cookie-file", default="", help="Enter Path to cookie File")
 @click.option("-sl","--sync-lang", default="de", help="Enter language Code (de / en)")
-
-def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file, sync_lang):
+def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file, sync_lang, playlist):
     getRootPath()
     # update()
     loadConfig()
@@ -196,10 +208,12 @@ def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file, sync_lang)
     global wgetBandwidth
     global cookieFile
     global syncLang
+    global parameters_playlist
 
     wgetBandwidth = bandwidth
     cookieFile = cookie_file
     syncLang = sync_lang
+    parameters_playlist = playlist
 
     parameters = "--retries {retries} --min-sleep-interval {min_sleep} --max-sleep-interval {max_sleep} -c".format(retries=retries, min_sleep=min_sleep, max_sleep=max_sleep)
 
@@ -566,8 +580,26 @@ def extractor(content):
 
 # ----- # ----- # hosts
 def host_default(content):
-    output = '-f best -o "%(title)s.%(ext)s"'
-    return download_youtube_dl(content, parameters, output)
+    if not parameters_playlist:
+        ydl_opts = {
+            'outtmpl': '%(title)s',
+            'restrictfilenames': True,
+            'forcefilename':True
+        }
+
+        with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(content, download=False)
+            filename = ydl.prepare_filename(info)
+            print(filename)
+
+        filename = getTitleFormated(filename)
+
+        output = '-f best --no-playlist -o "{title}.%(ext)s"'.format(title = filename)
+        return download_youtube_dl(content, parameters, output)
+
+    else:
+        output = '-f best -o "%(extractor)s--%(playlist_uploader)s_%(playlist_title)s/%(playlist_index)s_%(title)s.%(ext)s"'
+        return download_youtube_dl(content, parameters, output)
 
 
 # -----
