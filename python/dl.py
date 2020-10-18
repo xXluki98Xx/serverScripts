@@ -20,7 +20,7 @@ from exitstatus import ExitStatus
 
 # --------------- # help functions
 
-# ----- # ----- # titleFormating
+# ----- # ----- # title
 def getTitleFormated(title):
     newTitle = ""
 
@@ -31,7 +31,7 @@ def getTitleFormated(title):
     else:
         newTitle = title
 
-    newTitle = formating(newTitle)
+    newTitle = formatingFilename(newTitle)
 
     while newTitle.endswith('-'):
         newTitle = newTitle[:-1]
@@ -42,12 +42,32 @@ def getTitleFormated(title):
     return newTitle
 
 
-# ----- # ----- # format
-def formating(text):
+# ----- # ----- # format files
+def formatingFilename(text):
+    reg = re.compile(r"[^\w\d\s\-\_\/\.]")
+
+    extensionsList = ['.mp4', '.txt', '.mkv']
     swap = text.casefold()
 
-    swap = swap.replace(" ", "-").replace("_","-").replace("`", "-")
-    swap = swap.replace("/","").replace(".","").replace(":","")
+    swap = re.sub(reg, '', swap)
+
+    if any(ext in swap for ext in extensionsList):
+        fileSwap = swap.rsplit(".",1)
+        swap = fileSwap[0].replace("/","").replace(".","") + '.' + fileSwap[1]
+    else:
+        swap = swap.replace("/","").replace(".","")
+
+    swap = swap.replace(" ", "-").replace("_","-")
+
+    return swap
+
+# ----- # ----- # format folder
+def formatingDirectories(text):
+    reg = re.compile(r"[^\w\d\s\-\_\/\.]")
+
+    swap = text.casefold()
+    swap = re.sub(reg, '', swap)
+    swap = swap.replace(" ", "-")
 
     return swap
 
@@ -189,16 +209,29 @@ def getLanguage(plattform):
         if syncLang == "de": return "deDE"
 
 
+# ----- #
+def elapsedTime():
+    time_elapsed = datetime.datetime.now() - start_time
+    print('\nTime elapsed (hh:mm:ss.ms): {}'.format(time_elapsed))
+
+
 # --------------- # main functions
 @click.group()
+
+# switch
 @click.option("-a", "--axel", default=False, is_flag=True, help="Using Axel")
 @click.option("-p", "--playlist", default=False, is_flag=True, help="Playlist")
+
+# int
 @click.option("--retries", default=5, help="Enter an Number for Retries")
 @click.option("--min-sleep", default=2, help="Enter an Number for min-Sleep between retries/ downloads")
 @click.option("--max-sleep", default=15, help="Enter an Number for max-Sleep between retries/ downloads")
 @click.option("-bw","--bandwidth", default="0", help="Enter an Bandwidthlimit like 1.5M")
+
+# string
 @click.option("-cf","--cookie-file", default="", help="Enter Path to cookie File")
 @click.option("-sl","--sync-lang", default="de", help="Enter language Code (de / en)")
+
 def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file, sync_lang, playlist):
     getRootPath()
     # update()
@@ -224,6 +257,22 @@ def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file, sync_lang,
         parameters = parameters + " --external-downloader axel"
 
 
+# ----- # ----- # rename command
+@main.command(help="Path for rename")
+@click.argument('renamefiles', nargs=-1)
+def renameFiles(renamefiles):
+
+    for itemPath in renamefiles:
+        path, dirs, files = next(os.walk(itemPath))
+
+        for f in os.listdir(path):
+            old = os.path.join(path,f)
+            new = os.path.join(path,formatingFilename(f))
+            os.rename(old, new)
+
+        os.rename(itemPath, formatingDirectories(itemPath))
+
+
 # - - - - - # - - - - - # - - - - - # - - - - - #
 # - - - - - # - - - - - # - - - - - # - - - - - #
 # - - - - - # - - - - - # - - - - - # - - - - - #
@@ -247,6 +296,8 @@ def wget(wget):
                 print(item)
                 download_wget_single(item)
             wget = ""
+            elapsedTime()
+
         else:
             try:
                 url = input("\nPlease enter the Url:\n")
@@ -285,7 +336,7 @@ def list_wget(list_wget, bandwidth):
 
                 if download_wget(str(item)) == 0:
                     urlList.remove(item)
-                    print("removed: " + str(item) + " | rest list " + str(urlList))
+                    print("\nremoved: " + str(item) + " | rest list " + str(urlList))
 
     except KeyboardInterrupt:
         print("\nInterupt by User\n")
@@ -302,6 +353,8 @@ def list_wget(list_wget, bandwidth):
         with safer.open(dList, 'w') as f:
             for url in urlList:
                 f.write("%s\n" % url)
+
+        elapsedTime()
         sys.exit(ExitStatus.success)
 
 
@@ -330,6 +383,7 @@ def list_livedisk(list_livedisc, bandwidth):
         print("error: " + sys.exc_info()[0])
 
     finally:
+        elapsedTime()
         sys.exit(ExitStatus.success)
 
 
@@ -363,11 +417,11 @@ def download_wget_single(content):
                         print("Error Code: " + str(returned_value))
                         i += 1
                         timer = random.randint(200,1000)/100
-                        print("sleep for " + str(timer) + "s")
+                        print("\nsleep for " + str(timer) + "s")
                         time.sleep(timer)
 
                         if i == 3:
-                            print("This was the Command: \n%s" % wget)
+                            print("\nThe was the Command: \n%s" % wget)
                             return returned_value
 
                 else:
@@ -427,11 +481,11 @@ def download_wget(content,bandwidth):
                         print("Error Code: " + str(returned_value))
                         i += 1
                         timer = random.randint(200,1000)/100
-                        print("sleep for " + str(timer) + "s")
+                        print("\nsleep for " + str(timer) + "s")
                         time.sleep(timer)
 
                         if i == 3:
-                            print("This was the Command: \n%s" % wget)
+                            print("\nThe was the Command: \n%s" % wget)
                             return returned_value
 
                 else:
@@ -476,10 +530,13 @@ def url(url):
                 print(item)
                 extractor(item)
             url = ""
+            elapsedTime()
+
         else:
             try:
                 url = input("\nPlease enter the Url:\n")
                 extractor(url)
+
             except KeyboardInterrupt:
                 pass
 
@@ -532,6 +589,7 @@ def list_youtube_dl(list_youtube_dl):
             for url in urlList:
                 f.write("%s\n" % url)
         sys.exit(ExitStatus.success)
+        elapsedTime()
 
 
 # ----- # ----- # extractors
@@ -598,7 +656,7 @@ def host_default(content):
         return download_youtube_dl(content, parameters, output)
 
     else:
-        output = '-f best -o "%(extractor)s--%(playlist_uploader)s_%(playlist_title)s/%(playlist_index)s_%(title)s.%(ext)s"'
+        output = '-i -f best -o "%(extractor)s--%(playlist_uploader)s_%(playlist_title)s/%(playlist_index)s_%(title)s.%(ext)s"'
         return download_youtube_dl(content, parameters, output)
 
 
@@ -780,6 +838,7 @@ def host_vimeo(content):
     output = '--referer "{reference}" -f best -o "{title}.%(ext)s"'.format(reference=reference, title=title)
     return download_youtube_dl(content, parameters, output)
 
+
 # -----
 def host_cloudfront(content):
     if ";" in content:
@@ -802,28 +861,25 @@ def download_youtube_dl(content, parameters, output):
 
     while i < 3:
 
-        # print(ydl)
         returned_value = os.system(ydl)
 
         if returned_value > 0:
             i += 1
             timer = random.randint(200,1000)/100
-            print("sleep for " + str(timer) + "s")
+            print("\nsleep for " + str(timer) + "s")
             time.sleep(timer)
 
             if i == 3:
-                print("This was the Command: \n%s" % ydl)
+                print("\nThe was the Command: \n%s" % ydl)
                 return returned_value
-        else:
+        else:                        
             return returned_value
 
 
 # --------------- # main
 if __name__ == "__main__":
 
+    global start_time
     start_time = datetime.datetime.now()
 
     main()
-
-    time_elapsed = datetime.datetime.now() - start_time
-    print('\nTime elapsed (hh:mm:ss.ms): {}'.format(time_elapsed))
