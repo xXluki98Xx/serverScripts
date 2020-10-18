@@ -269,10 +269,10 @@ def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file, sync_lang,
 
 # ----- # ----- # rename command
 @main.command(help="Path for rename")
-@click.argument('renamefiles', nargs=-1)
-def renameFiles(renamefiles):
+@click.argument('rename', nargs=-1)
+def rename(rename):
 
-    for itemPath in renamefiles:
+    for itemPath in rename:
         path, dirs, files = next(os.walk(itemPath))
 
         for f in os.listdir(path):
