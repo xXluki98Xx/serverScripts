@@ -8,6 +8,7 @@ and then ignore every change to the env file, if you want to upload something to
 	git update-index --assume-unchanged
 
 Doto
+
 	crunchyroll
 	-sl -- subLanguage
 	-dl -- dubLanguage
