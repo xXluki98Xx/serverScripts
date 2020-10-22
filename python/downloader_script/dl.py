@@ -216,13 +216,34 @@ def getUserCredentials(plattform):
 # ----- #
 def getLanguage(plattform):
     if plattform == "crunchyroll":
-        if syncLang == "de": return "deDE"
+        if subLang == "de": return "-f 'best[format_id*=adaptive_hls-audio-jpJP][format_id=deDE]'"
+        if dubLang == "de": return "-f 'best[format_id*=adaptive_hls-audio-deDE][format_id!=hardsub]'"
+
 
 
 # ----- #
 def elapsedTime():
     time_elapsed = datetime.datetime.now() - start_time
     print('\nTime elapsed (hh:mm:ss.ms): {}'.format(time_elapsed))
+
+
+# ----- #
+def renameEpisode(season, episode, title, seasonOffset):
+
+    f = "s"
+    if len(season) == 1:
+        f += "0" + str( int(season) + int(seasonOffset))
+    else:
+        f += str( int(season) + int(seasonOffset))
+
+    f += "e"
+    if len(episode) == 1:
+        f += "0" + episode
+    else:
+        f += episode
+    f += "-" + title
+
+    return f
 
 
 # --------------- # main functions
@@ -240,9 +261,10 @@ def elapsedTime():
 
 # string
 @click.option("-cf","--cookie-file", default="", help="Enter Path to cookie File")
-@click.option("-sl","--sync-lang", default="de", help="Enter language Code (de / en)")
+@click.option("-sl","--sub-lang", default="", help="Enter language Code (de / en)")
+@click.option("-dl","--dub-lang", default="", help="Enter language Code (de / en)")
 
-def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file, sync_lang, playlist):
+def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file, sub_lang, dub_lang, playlist):
     getRootPath()
     # update()
     loadConfig()
@@ -250,12 +272,14 @@ def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file, sync_lang,
     global parameters
     global wgetBandwidth
     global cookieFile
-    global syncLang
+    global subLang
+    global dubLang
     global parameters_playlist
 
     wgetBandwidth = bandwidth
     cookieFile = cookie_file
-    syncLang = sync_lang
+    subLang = sub_lang
+    dubLang = dub_lang
     parameters_playlist = playlist
 
     parameters = "--retries {retries} --min-sleep-interval {min_sleep} --max-sleep-interval {max_sleep} -c".format(retries=retries, min_sleep=min_sleep, max_sleep=max_sleep)
@@ -268,19 +292,33 @@ def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file, sync_lang,
 
 
 # ----- # ----- # rename command
-@main.command(help="Path for rename")
+@main.command(help="Path for rename, not file")
+
+# switch
+@click.option("-cr", "--crunchyroll", default=False, is_flag=True, help="syntax Crunchyroll")
+
+# arguments
 @click.argument('rename', nargs=-1)
-def rename(rename):
+def rename(rename, crunchyroll):
 
     for itemPath in rename:
         path, dirs, files = next(os.walk(itemPath))
 
         for f in os.listdir(path):
             old = os.path.join(path,f)
+
+            if crunchyroll :
+                fSwap = formatingFilename(f).split("-", 4)
+                f = renameEpisode(fSwap[1], fSwap[3], fSwap[4], 1)
+
             new = os.path.join(path,formatingFilename(f))
             os.rename(old, new)
 
-        os.rename(itemPath, formatingDirectories(itemPath))
+
+        try:
+            os.rename(itemPath, formatingDirectories(itemPath))
+        except:
+            pass
 
 
 # - - - - - # - - - - - # - - - - - # - - - - - #
@@ -794,13 +832,15 @@ def host_animeondemand(content):
 # -----
 def host_crunchyroll(content):
     parameter = getUserCredentials("crunchyroll")
-    lang = getLanguage("crunchyroll")
+    output = getLanguage("crunchyroll")
 
     if "www." not in content:
         swap = content.split('/', 2)
         content = "https://www." + swap[2]
 
-    output = "-i -f 'best[format_id*=adaptive_hls-audio-{language}][format_id!=hardsub]' -o '%(playlist)s/season-%(season_number)s_episode-%(episode_number)s_%(episode)s.%(ext)s'".format(language=lang)
+
+    output += " -i -o '%(playlist)s/season-%(season_number)s_episode-%(episode_number)s_%(episode)s.%(ext)s'"
+    print(output)
     return download_youtube_dl(content, parameter, output)
 
 
@@ -882,7 +922,7 @@ def download_youtube_dl(content, parameters, output):
             if i == 3:
                 print("\nThe was the Command: \n%s" % ydl)
                 return returned_value
-        else:                        
+        else:
             return returned_value
 
 
