@@ -11,4 +11,4 @@ Doto
 
 	crunchyroll
 	-sl -- subLanguage
-	-dl -- dubLanguage
+	 --> parameters ergänzen
