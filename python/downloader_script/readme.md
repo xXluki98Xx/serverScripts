@@ -10,5 +10,4 @@ and then ignore every change to the env file, if you want to upload something to
 Doto
 
 	crunchyroll
-	-sl -- subLanguage
-	 --> parameters ergänzen
+	--> url test if country specifa like de/fr/us is between domain and series
