@@ -193,7 +193,6 @@ def getRootPath():
         pathTest = subprocess.check_output(['find', subPath, '-name', 'dl.py']).decode('utf-8')
         if pathTest != "":
             pathToRoot = pathTest
-            # print(pathToRoot)
             break
 
     pathToRoot = pathToRoot.replace("dl.py","").rstrip('\n')
@@ -215,10 +214,11 @@ def getUserCredentials(plattform):
 
 # ----- #
 def getLanguage(plattform):
-    if plattform == "crunchyroll":
-        if subLang == "de": return "-f 'best[format_id*=adaptive_hls-audio-jpJP][format_id=deDE]'"
-        if dubLang == "de": return "-f 'best[format_id*=adaptive_hls-audio-deDE][format_id!=hardsub]'"
+    output = "--no-mark-watched --hls-prefer-ffmpeg --socket-timeout 60 "
 
+    if plattform == "crunchyroll":
+        if subLang == "de": return output + "-f 'best[format_id*=adaptive_hls-audio-jpJP-hardsub-deDE]'"
+        if dubLang == "de": return output + "-f 'best[format_id*=adaptive_hls-audio-deDE][format_id!=hardsub]'"
 
 
 # ----- #
@@ -838,9 +838,7 @@ def host_crunchyroll(content):
         swap = content.split('/', 2)
         content = "https://www." + swap[2]
 
-
     output += " -i -o '%(playlist)s/season-%(season_number)s_episode-%(episode_number)s_%(episode)s.%(ext)s'"
-    print(output)
     return download_youtube_dl(content, parameter, output)
 
 
@@ -861,8 +859,6 @@ def host_wakanim(content):
 def host_udemy(content):
     for p in data['udemy']:
         parameter = "-u '" + p['username'] + "' -p '" + p['password'] + "' " + parameters
-
-    print(parameter)
 
     title = content.split('/',4)[4].rsplit('/',5)[0]
     url = "https://www.udemy.com/" + title
