@@ -214,7 +214,7 @@ def getUserCredentials(plattform):
 
 # ----- #
 def getLanguage(plattform):
-    output = "--no-mark-watched --hls-prefer-ffmpeg --socket-timeout 60 "
+    output = "--no-mark-watched --hls-prefer-ffmpeg --socket-timeout 30 "
 
     if plattform == "crunchyroll":
         if subLang == "de": return output + "-f 'best[format_id*=adaptive_hls-audio-jpJP-hardsub-deDE]'"
@@ -838,7 +838,7 @@ def host_crunchyroll(content):
         swap = content.split('/', 2)
         content = "https://www." + swap[2]
 
-    output += " -i -o '%(playlist)s/season-%(season_number)s_episode-%(episode_number)s_%(episode)s.%(ext)s'"
+    output += " -i -o '%(playlist)s/season-%(season_number)s-episode-%(episode_number)s-%(episode)s.%(ext)s'"
     return download_youtube_dl(content, parameter, output)
 
 
@@ -908,6 +908,7 @@ def download_youtube_dl(content, parameters, output):
     while i < 3:
 
         returned_value = os.system(ydl)
+        print(returned_value)
 
         if returned_value > 0:
             i += 1
