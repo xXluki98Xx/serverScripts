@@ -1,0 +1,41 @@
+#!/bin/bash
+
+# bezeichnungsvariablen
+server=$(cat /etc/hostname)
+oldPath=$(pwd)
+
+# git Repo eingabe
+echo Bitte geben Sie die neue git URL ein
+read URL
+
+# Git Config
+git config credential.helper store
+git remote set-url origin --push --add $URL
+git config user.name $server
+
+# Docker Projekt anhalten und sichern
+docker-compose down
+
+    git add .
+    git add -A
+
+        curtime=`date`
+        git commit -m "First Backup @ $date"
+
+    git push origin master
+
+# altes repo löschen und das neue downloaden
+cd ..
+sudo rm -r $oldPath
+git clone $URL
+
+# wechsel in neues Repo und Docker Dienst starten
+# schneidet den title close tag ab
+newDir="${URL%.git*}"
+# schneidet alles bis zum letzten Bindestrich ab (URL)
+newDir="${newDir##*/}"
+
+cd $newDir
+docker-compose up -d
+
+echo Ihr repo ist jetzt für Backups konfiguriert
