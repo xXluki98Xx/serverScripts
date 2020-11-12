@@ -97,48 +97,49 @@ def bytes2human(n):
 
 # ----- # ----- # removing outdated files
 def removeFiles(path, file_count_prev):
-    print("\nRemoving old files")
+    if not booleanRemoveFiles:
+        print("\nRemoving old files")
 
-    # file count
-    path, dirs, files = next(os.walk(path))
-    file_count = len(files)
+        # file count
+        path, dirs, files = next(os.walk(path))
+        file_count = len(files)
 
-    print("files before: " + str(file_count_prev))
-    print("files after: " + str(file_count))
+        print("files before: " + str(file_count_prev))
+        print("files after: " + str(file_count))
 
-    if (file_count > file_count_prev):
-        files = []
-        index = 0
-        for f in os.listdir(path):
-            index += 1
-            if ( os.stat(os.path.join(path,f)).st_mtime < (datetime.datetime.now().timestamp() - (6 * 30 * 86400)) ):
-                files.append(os.path.join(path,f))
+        if (file_count > file_count_prev):
+            files = []
+            index = 0
+            for f in os.listdir(path):
+                index += 1
+                if ( os.stat(os.path.join(path,f)).st_mtime < (datetime.datetime.now().timestamp() - (6 * 30 * 86400)) ):
+                    files.append(os.path.join(path,f))
 
-        print(files)
-        print(index)
+            print(files)
+            print(index)
 
-        if index > len(files):
-            for i in files:
-                print("removing: " + i)
-                os.remove(os.path.join(path, i))
+            if index > len(files):
+                for i in files:
+                    print("removing: " + i)
+                    os.remove(os.path.join(path, i))
 
-    else:
-        files = []
-        index = 0
-        for f in os.listdir(path):
-            index += 1
-            if ( os.stat(os.path.join(path,f)).st_mtime < (datetime.datetime.now().timestamp() - (12 * 30 * 86400)) ):
-                files.append(os.path.join(path,f))
+        else:
+            files = []
+            index = 0
+            for f in os.listdir(path):
+                index += 1
+                if ( os.stat(os.path.join(path,f)).st_mtime < (datetime.datetime.now().timestamp() - (12 * 30 * 86400)) ):
+                    files.append(os.path.join(path,f))
 
-        print(files)
-        print(index)
+            print(files)
+            print(index)
 
-        if index > len(files):
-            for i in files:
-                print("removing: " + i)
-                os.remove(os.path.join(path, i))
+            if index > len(files):
+                for i in files:
+                    print("removing: " + i)
+                    os.remove(os.path.join(path, i))
 
-    print("finished\n")
+        print("finished Removing\n")
 
 
 # ----- # ----- # updating moduls
@@ -252,6 +253,7 @@ def renameEpisode(season, episode, title, seasonOffset):
 # switch
 @click.option("-a", "--axel", default=False, is_flag=True, help="Using Axel")
 @click.option("-p", "--playlist", default=False, is_flag=True, help="Playlist")
+@click.option("-nr", "--no-remove", default=False, is_flag=True, help="remove Files at wget")
 
 # int
 @click.option("--retries", default=5, help="Enter an Number for Retries")
@@ -264,10 +266,10 @@ def renameEpisode(season, episode, title, seasonOffset):
 @click.option("-sl","--sub-lang", default="", help="Enter language Code (de / en)")
 @click.option("-dl","--dub-lang", default="", help="Enter language Code (de / en)")
 
-def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file, sub_lang, dub_lang, playlist):
-    getRootPath()
+def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file, sub_lang, dub_lang, playlist, no_remove):
+    # getRootPath()
     # update()
-    loadConfig()
+    # loadConfig()
 
     global parameters
     global wgetBandwidth
@@ -275,12 +277,14 @@ def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file, sub_lang, 
     global subLang
     global dubLang
     global parameters_playlist
+    global booleanRemoveFiles
 
     wgetBandwidth = bandwidth
     cookieFile = cookie_file
     subLang = sub_lang
     dubLang = dub_lang
     parameters_playlist = playlist
+    booleanRemoveFiles = no_remove
 
     parameters = "--retries {retries} --min-sleep-interval {min_sleep} --max-sleep-interval {max_sleep} -c".format(retries=retries, min_sleep=min_sleep, max_sleep=max_sleep)
 
