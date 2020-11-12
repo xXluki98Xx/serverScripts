@@ -188,16 +188,18 @@ def getRootPath():
     global pathToRoot
     pathToRoot = ""
 
-    path = os.getenv('PATH').split(":")
-    # print(path)
-    for subPath in path:
-        pathTest = subprocess.check_output(['find', subPath, '-name', 'dl.py']).decode('utf-8')
-        if pathTest != "":
-            pathToRoot = pathTest
-            break
+    try:
+        path = os.getenv('PATH').split(":")
+        # print(path)
+        for subPath in path:
+            pathTest = subprocess.check_output(['find', subPath, '-name', 'dl.py']).decode('utf-8')
+            if pathTest != "":
+                pathToRoot = pathTest
+                break
 
-    pathToRoot = pathToRoot.replace("dl.py","").rstrip('\n')
-
+        pathToRoot = pathToRoot.replace("dl.py","").rstrip('\n')
+    except:
+        pathToRoot = os.getcwd()
 
 # ----- #
 def getUserCredentials(plattform):
@@ -254,6 +256,7 @@ def renameEpisode(season, episode, title, seasonOffset):
 @click.option("-a", "--axel", default=False, is_flag=True, help="Using Axel")
 @click.option("-p", "--playlist", default=False, is_flag=True, help="Playlist")
 @click.option("-nr", "--no-remove", default=False, is_flag=True, help="remove Files at wget")
+@click.option("-up", "--update-packages", default=False, is_flag=True, help="updates packages listed in requirements.txt")
 
 # int
 @click.option("--retries", default=5, help="Enter an Number for Retries")
@@ -266,10 +269,14 @@ def renameEpisode(season, episode, title, seasonOffset):
 @click.option("-sl","--sub-lang", default="", help="Enter language Code (de / en)")
 @click.option("-dl","--dub-lang", default="", help="Enter language Code (de / en)")
 
-def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file, sub_lang, dub_lang, playlist, no_remove):
-    # getRootPath()
-    # update()
-    # loadConfig()
+def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file, sub_lang, dub_lang, playlist, no_remove, update_packages):
+    
+    getRootPath()
+
+    if update_packages:
+        update()
+
+    loadConfig()
 
     global parameters
     global wgetBandwidth
