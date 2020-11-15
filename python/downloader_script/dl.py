@@ -14,6 +14,7 @@ import safer
 import bs4
 import json
 import youtube_dl
+import ffmpeg
 
 from exitstatus import ExitStatus
 
@@ -47,7 +48,7 @@ def formatingFilename(text):
     reg = re.compile(r"[^\w\d\s\-\_\/\.]")
     reg3 = re.compile(r"-{3,}")
 
-    extensionsList = ['.mp4', '.txt', '.mkv']
+    extensionsList = ['.mp4', '.txt', '.mkv', '.flac', '.wav', '.mp3']
     swap = text.casefold()
 
     swap = re.sub(reg, '', swap)
@@ -73,7 +74,7 @@ def formatingDirectories(text):
 
     swap = text.casefold()
     swap = re.sub(reg, '', swap)
-    swap = swap.replace(" ", "-")
+    swap = swap.replace(" ", "-").replace("_","-")
 
     swap = re.sub(reg3, "§", swap)
     swap = swap.replace("--", "-")
@@ -202,10 +203,10 @@ def getRootPath():
         pathToRoot = os.getcwd()
 
 # ----- #
-def getUserCredentials(plattform):
+def getUserCredentials(platform):
     credentialList = ['animeondemand', 'udemy']
 
-    if plattform in credentialList:
+    if platform in credentialList:
         for p in data['animeondemand']:
             parameter = "-u '" + p['username'] + "' -p '" + p['password'] + "' " + parameters
 
@@ -216,10 +217,10 @@ def getUserCredentials(plattform):
 
 
 # ----- #
-def getLanguage(plattform):
+def getLanguage(platform):
     output = "--no-mark-watched --hls-prefer-ffmpeg --socket-timeout 30 "
 
-    if plattform == "crunchyroll":
+    if platform == "crunchyroll":
         if subLang == "de": return output + "-f 'best[format_id*=adaptive_hls-audio-jpJP-hardsub-deDE]'"
         if dubLang == "de": return output + "-f 'best[format_id*=adaptive_hls-audio-deDE][format_id!=hardsub]'"
 
@@ -247,6 +248,56 @@ def renameEpisode(season, episode, title, seasonOffset):
     f += "-" + title
 
     return f
+
+
+# ----- #
+def func_rename(filePath, platform, offset, cut):
+    path, dirs, files = next(os.walk(filePath))
+
+    for directory in dirs:
+        func_rename(os.path.join(filePath, directory), platform, offset, cut)
+        
+    for f in os.listdir(path):
+        old = os.path.join(path,f)
+        f = f[offset:]
+        # f = f[:cut]
+
+        if platform == "crunchyroll":
+            fSwap = formatingFilename(f).split("-", 4)
+            f = renameEpisode(fSwap[1], fSwap[3], fSwap[4], 1)
+
+        new = os.path.join(path,formatingFilename(f))
+        os.rename(old, new)
+
+    try:
+        os.rename(filePath, formatingDirectories(filePath))
+    except:
+        pass
+
+
+# ----- #
+def convertFilesFfmpeg(fileName, newFormat, subPath):
+    newFile = fileName.rsplit(".", 1)[0]
+    output = ""
+
+    if subPath:
+        if "/" in newFile:
+            newFile = newFile.rsplit("/", 1)
+            path = newFile[0] + "/" + subPath
+
+            if not os.path.exists(path):
+                os.makedirs(path)
+
+            output = path + "/" + newFile[1]
+        else:
+            if not os.path.exists(subPath):
+                os.makedirs(subPath)
+
+            output = subPath + "/" + newFile
+    else:
+        output = newFile
+
+    ffmpeg.input(fileName).output(output + "." + newFormat).run()
 
 
 # --------------- # main functions
@@ -306,30 +357,42 @@ def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file, sub_lang, 
 @main.command(help="Path for rename, not file")
 
 # switch
+@click.option("-os", "--offset", default=0, help="String Offset")
+@click.option("-c", "--cut", default=0, help="Cut String")
 @click.option("-cr", "--crunchyroll", default=False, is_flag=True, help="syntax Crunchyroll")
 
 # arguments
 @click.argument('rename', nargs=-1)
-def rename(rename, crunchyroll):
+def rename(rename, offset, cut, crunchyroll):
+    platform = ""
+
+    if crunchyroll:
+        platform = "crunchyroll"
 
     for itemPath in rename:
-        path, dirs, files = next(os.walk(itemPath))
-
-        for f in os.listdir(path):
-            old = os.path.join(path,f)
-
-            if crunchyroll :
-                fSwap = formatingFilename(f).split("-", 4)
-                f = renameEpisode(fSwap[1], fSwap[3], fSwap[4], 1)
-
-            new = os.path.join(path,formatingFilename(f))
-            os.rename(old, new)
+        func_rename(itemPath, platform, offset, cut)
 
 
-        try:
-            os.rename(itemPath, formatingDirectories(itemPath))
-        except:
-            pass
+# ----- # ----- # convertFiles command
+@main.command(help="Path for rename, not file")
+
+# switch
+@click.option("-f", "--ffmpeg", default=False, is_flag=True, help="ffmpeg")
+@click.option("-sp", "--subpath", default="", help="Path which will contain the new Files")
+
+# arguments
+@click.argument("newformat", nargs=1)
+@click.argument("path", nargs=-1)
+def convertFiles(newformat, path, subpath, ffmpeg):
+    if ffmpeg:
+        for itemPath in path:
+            sPath = formatingDirectories(itemPath)
+            func_rename(itemPath, "", 0, 0)
+            paths, dirs, files = next(os.walk(sPath))
+
+            for f in os.listdir(paths):
+                old = os.path.join(paths,f)
+                convertFilesFfmpeg(old, newformat, subpath)
 
 
 # - - - - - # - - - - - # - - - - - # - - - - - #
@@ -866,7 +929,7 @@ def host_wakanim(content):
     return download_youtube_dl(content, parameter, output)
 
 
-# --------------- # Plattformen
+# --------------- # platformen
 def host_udemy(content):
     for p in data['udemy']:
         parameter = "-u '" + p['username'] + "' -p '" + p['password'] + "' " + parameters
