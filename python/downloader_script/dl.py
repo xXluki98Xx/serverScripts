@@ -184,6 +184,7 @@ def testWebpage(url):
   else:
         return 0
 
+
 # ----- #
 def getRootPath():
     global pathToRoot
@@ -201,6 +202,7 @@ def getRootPath():
         pathToRoot = pathToRoot.replace("dl.py","").rstrip('\n')
     except:
         pathToRoot = os.getcwd()
+
 
 # ----- #
 def getUserCredentials(platform):
@@ -256,7 +258,7 @@ def func_rename(filePath, platform, offset, cut):
 
     for directory in dirs:
         func_rename(os.path.join(filePath, directory), platform, offset, cut)
-        
+
     for f in os.listdir(path):
         old = os.path.join(path,f)
         f = f[offset:]
@@ -321,7 +323,7 @@ def convertFilesFfmpeg(fileName, newFormat, subPath):
 @click.option("-dl","--dub-lang", default="", help="Enter language Code (de / en)")
 
 def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file, sub_lang, dub_lang, playlist, no_remove, update_packages):
-    
+
     getRootPath()
 
     if update_packages:
@@ -906,7 +908,7 @@ def host_animeondemand(content):
 # -----
 def host_crunchyroll(content):
     parameter = getUserCredentials("crunchyroll")
-    output = getLanguage("crunchyroll")
+    output = str(getLanguage("crunchyroll"))
 
     if "www." not in content:
         swap = content.split('/', 2)
