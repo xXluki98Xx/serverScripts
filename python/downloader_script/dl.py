@@ -254,7 +254,10 @@ def renameEpisode(season, episode, title, seasonOffset):
 
 # ----- #
 def func_rename(filePath, platform, offset, cut):
-    path, dirs, files = next(os.walk(filePath))
+    try:
+        path, dirs, files = next(os.walk(filePath))
+    except:
+        print("could the path be wrong?")
 
     for directory in dirs:
         func_rename(os.path.join(filePath, directory), platform, offset, cut)
