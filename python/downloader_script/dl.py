@@ -264,6 +264,10 @@ def func_rename(filePath, platform, offset, cut):
         f = f[offset:]
         # f = f[:cut]
 
+        seasonOffset = 0
+        if booleanSingle:
+            seasonOffset = 1
+
         if platform == "crunchyroll":
             fSwap = formatingFilename(f).split("-", 4)
             f = renameEpisode(fSwap[1], fSwap[3], fSwap[4], 1)
@@ -362,11 +366,15 @@ def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file, sub_lang, 
 @click.option("-os", "--offset", default=0, help="String Offset")
 @click.option("-c", "--cut", default=0, help="Cut String")
 @click.option("-cr", "--crunchyroll", default=False, is_flag=True, help="syntax Crunchyroll")
+@click.option("-s", "--single", default=False, is_flag=True, help="series is only one Season")
 
 # arguments
 @click.argument('rename', nargs=-1)
-def rename(rename, offset, cut, crunchyroll):
+def rename(rename, offset, cut, crunchyroll, single):
     platform = ""
+
+    global booleanSingle
+    booleanSingle = single
 
     if crunchyroll:
         platform = "crunchyroll"
