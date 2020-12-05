@@ -259,34 +259,39 @@ def renameEpisode(season, episode, title, seasonOffset):
 
 # ----- #
 def func_rename(filePath, platform, offset, cut):
-    try:
-        path, dirs, files = next(os.walk(filePath))
-    except:
-        print("could the path be wrong?")
-
-    for directory in dirs:
-        func_rename(os.path.join(filePath, directory), platform, offset, cut)
-
-    for f in os.listdir(path):
-        old = os.path.join(path,f)
-        f = f[offset:]
-        # f = f[:cut]
-
-        seasonOffset = 0
-        if booleanSingle:
-            seasonOffset = 1
-
-        if platform == "crunchyroll":
-            fSwap = formatingFilename(f).split("-", 4)
-            f = renameEpisode(fSwap[1], fSwap[3], fSwap[4], 1)
-
-        new = os.path.join(path,formatingFilename(f))
+    if os.path.isfile(filePath):
+        old = os.path.join(os.getcwd(),filePath)
+        new = os.path.join(os.getcwd(),formatingFilename(filePath))
         os.rename(old, new)
+    else:
+        try:
+            path, dirs, files = next(os.walk(filePath))
+        except:
+            print("could the path be wrong?")
 
-    try:
-        os.rename(filePath, formatingDirectories(filePath))
-    except:
-        pass
+        for directory in dirs:
+            func_rename(os.path.join(filePath, directory), platform, offset, cut)
+
+        for f in os.listdir(path):
+            old = os.path.join(path,f)
+            f = f[offset:]
+            # f = f[:cut]
+
+            seasonOffset = 0
+            if booleanSingle:
+                seasonOffset = 1
+
+            if platform == "crunchyroll":
+                fSwap = formatingFilename(f).split("-", 4)
+                f = renameEpisode(fSwap[1], fSwap[3], fSwap[4], 1)
+
+            new = os.path.join(path,formatingFilename(f))
+            os.rename(old, new)
+
+        try:
+            os.rename(filePath, formatingDirectories(filePath))
+        except:
+            pass
 
 
 # ----- #
