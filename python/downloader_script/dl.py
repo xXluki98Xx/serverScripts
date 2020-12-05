@@ -48,7 +48,7 @@ def formatingFilename(text):
     reg = re.compile(r"[^\w\d\s\-\_\/\.]")
     reg3 = re.compile(r"-{3,}")
 
-    extensionsList = ['.mp4', '.txt', '.mkv', '.flac', '.wav', '.mp3']
+    extensionsList = ['.mp4', '.txt', '.mkv', '.flac', '.wav', '.mp3', '.avi']
     swap = text.casefold()
 
     swap = re.sub(reg, '', swap)
