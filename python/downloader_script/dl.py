@@ -48,7 +48,12 @@ def formatingFilename(text):
     reg = re.compile(r"[^\w\d\s\-\_\/\.]")
     reg3 = re.compile(r"-{3,}")
 
-    extensionsList = ['.mp4', '.txt', '.mkv', '.flac', '.wav', '.mp3', '.avi']
+    extensionsList = [
+                        '.mp4', '.mkv', '.avi',
+                        '.flac', '.wav', '.mp3',
+                        '.py', '.txt', '.md',
+                    ]
+
     swap = text.casefold()
 
     swap = re.sub(reg, '', swap)
@@ -285,6 +290,30 @@ def func_rename(filePath, platform, offset, cut):
 
 
 # ----- #
+def func_replace(filePath, old, new):
+    try:
+        path, dirs, files = next(os.walk(filePath))
+    except:
+        print("could the path be wrong?")
+
+    for directory in dirs:
+        func_replace(os.path.join(filePath, directory), old, new)
+
+    for f in os.listdir(path):
+        oldFile = os.path.join(path,f)
+        print(f)
+        f = f.replace(old, new)
+        print(f)
+        newFile = os.path.join(path,formatingFilename(f))
+        os.rename(oldFile, newFile)
+
+    try:
+        os.rename(filePath, formatingDirectories(filePath))
+    except:
+        pass
+
+
+# ----- #
 def convertFilesFfmpeg(fileName, newFormat, subPath):
     newFile = fileName.rsplit(".", 1)[0]
     output = ""
@@ -384,6 +413,20 @@ def rename(rename, offset, cut, crunchyroll, single):
 
     for itemPath in rename:
         func_rename(itemPath, platform, offset, cut)
+
+
+# ----- # ----- # replace command
+@main.command(help="Path, old String, new String")
+
+# switch
+@click.option("-o", "--old", default="", help="old String")
+@click.option("-n", "--new", default="", help="new String")
+
+# arguments
+@click.argument('replace', nargs=-1)
+def replace(replace, old, new):
+    for itemPath in replace:
+        func_replace(itemPath, old, new)
 
 
 # ----- # ----- # convertFiles command
