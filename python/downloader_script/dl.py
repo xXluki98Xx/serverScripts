@@ -255,7 +255,7 @@ def renameEpisode(season, episode, title, seasonOffset):
     f += "-" + title
 
     return f
-^
+
 
 # ----- #
 def func_rename(filePath, platform, offset, cut):
