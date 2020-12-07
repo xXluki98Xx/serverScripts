@@ -255,7 +255,7 @@ def renameEpisode(season, episode, title, seasonOffset):
     f += "-" + title
 
     return f
-
+^
 
 # ----- #
 def func_rename(filePath, platform, offset, cut):
@@ -306,9 +306,7 @@ def func_replace(filePath, old, new):
 
     for f in os.listdir(path):
         oldFile = os.path.join(path,f)
-        print(f)
         f = f.replace(old, new)
-        print(f)
         newFile = os.path.join(path,formatingFilename(f))
         os.rename(oldFile, newFile)
 
