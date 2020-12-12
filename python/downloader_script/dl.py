@@ -49,7 +49,7 @@ def formatingFilename(text):
     reg3 = re.compile(r"-{3,}")
 
     extensionsList = [
-                        '.mp4', '.mkv', '.avi',
+                        '.mp4', '.mkv', '.avi', '.m4a',
                         '.flac', '.wav', '.mp3',
                         '.py', '.txt', '.md',
                         '.iso', '.zip',
