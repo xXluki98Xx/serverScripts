@@ -148,7 +148,7 @@ def update():
     print('Updating Packages')
 
     path = os.path.join(pathToRoot, 'requirements.txt')
-    command = ['pip3', 'install', '-r', path]
+    command = ['pip3', 'install', '-U', '-r', path]
 
     proc = subprocess.Popen(
         command, stdout=subprocess.PIPE, stderr=subprocess.PIPE
@@ -330,18 +330,18 @@ def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file, sub_lang, 
     loadConfig()
 
     global parameters
-    global wgetBandwidth
+    global floatBandwidth
     global cookieFile
     global subLang
     global dubLang
-    global parameters_playlist
+    global booleanPlaylist
     global booleanRemoveFiles
 
-    wgetBandwidth = bandwidth
+    floatBandwidth = bandwidth
     cookieFile = cookie_file
     subLang = sub_lang
     dubLang = dub_lang
-    parameters_playlist = playlist
+    booleanPlaylist = playlist
     booleanRemoveFiles = no_remove
 
     parameters = "--retries {retries} --min-sleep-interval {min_sleep} --max-sleep-interval {max_sleep} -c".format(retries=retries, min_sleep=min_sleep, max_sleep=max_sleep)
@@ -406,17 +406,31 @@ def convertFiles(newformat, path, subpath, ffmpeg):
 # - - - - - # - - - - - # - - - - - # - - - - - #
 
 
-# ----- # ----- # single url
+# ----- # ----- # wget
 @main.command(help="Enter an URL")
+
+# switch
+@click.option("-sp", "--space", default=False, is_flag=True, help="check if old file are deletable")
+@click.option("-sy", "--sync", default=False, is_flag=True, help="")
+
+# arguments
 @click.argument('wget', nargs=-1)
-def wget(wget):
+def wget(wget, space, sync):
+    global booleanSpace
+    global booleanSync
+    booleanSpace = space
+    booleanSync = sync
+    
     repeat = True
 
     while repeat:
         if wget != "":
             for item in wget:
-                print(item)
-                download_wget_single(item)
+                if os.path.isfile(item):
+                    wget_list(item)
+                else:
+                    wget_download(item)
+
             wget = ""
             elapsedTime()
 
@@ -439,40 +453,47 @@ def wget(wget):
             repeat = False
 
 
-# ----- # ----- # url list
-@main.command(help="Enter an List with URL for wget Sync")
-@click.argument("list_wget", nargs= -1)
-@click.option("--bandwidth", default="0", help="Enter an Bandwidthlimit like 1.5M")
-def list_wget(list_wget, bandwidth):
-    for dList in list_wget:
-        with safer.open(dList) as f:
-            urlList = f.readlines()
-            urlList = [x.strip() for x in urlList]
+# -----
+def wget_list(itemList):
+    with safer.open(itemList) as f:
+        urlList = f.readlines()
+        urlList = [x.strip() for x in urlList]
 
     urlCopy = urlList.copy()
+
+    if booleanSync:
+        random.shuffle(urlCopy)
 
     try:
         for item in urlCopy:
             if item != "" :
                 print(item)
 
-                if download_wget(str(item)) == 0:
-                    urlList.remove(item)
-                    print("\nremoved: " + str(item) + " | rest list " + str(urlList))
+                if booleanSync:
+                    print("download: " + item)
+                    wget_download(str(item))
+                else:
+                    if wget_download(str(item)) == 0:
+                        urlList.remove(item)
+                        print("\nremoved: " + str(item) + " | rest list " + str(urlList))
 
     except KeyboardInterrupt:
-        print("\nInterupt by User\n")
-        with safer.open(dList, 'w') as f:
-            for url in urlList:
-                f.write("%s\n" % url)
-        exit()
+        if booleanSync:
+            print("\nInterupt by User\n")
+            exit()
+        else:
+            print("\nInterupt by User\n")
+            with safer.open(itemList, 'w') as f:
+                for url in urlList:
+                    f.write("%s\n" % url)
+            exit()
 
     except:
-        print("error: " + sys.exc_info()[0])
+        print("error: " + str(sys.exc_info()))
 
     finally:
         # will always be executed last, with or without exception
-        with safer.open(dList, 'w') as f:
+        with safer.open(itemList, 'w') as f:
             for url in urlList:
                 f.write("%s\n" % url)
 
@@ -480,49 +501,35 @@ def list_wget(list_wget, bandwidth):
         sys.exit(ExitStatus.success)
 
 
-# ----- # ----- # url list for livedisks
-@main.command(help="Enter an List with URL for LiveDisk Sync")
-@click.argument("list_livedisc", nargs= -1)
-@click.option("--bandwidth", default="0", help="Enter an Bandwidthlimit like 1.5M")
-def list_livedisk(list_livedisc, bandwidth):
-    for dList in list_livedisc:
-        with safer.open(dList) as f:
-            urlList = f.readlines()
-            urlList = [x.strip() for x in urlList]
-
+# -----
+def wget_download(content):
     try:
-        random.shuffle(urlList)
-        for item in urlList:
-            if item != "" :
-                print("download: " + item)
-                download_wget(str(item),bandwidth)
+        if ";" in content:
+            swap = content.split(";")
+            content = swap[0]
+            directory = swap[1]
+        else:
+            directory = ""
 
-    except KeyboardInterrupt:
-        print("\nInterupt by User\n")
-        exit()
+        path = os.path.join(os.getcwd(),directory)
 
-    except:
-        print("error: " + sys.exc_info()[0])
+        wget = 'wget -P {dir} -c -w 5 --random-wait --limit-rate={bw} -e robots=off {url}'.format(dir=path,url=content, bw=floatBandwidth)
 
-    finally:
-        elapsedTime()
-        sys.exit(ExitStatus.success)
+        if booleanSync:
+            wget = wget + ' -r --no-http-keep-alive -np -nd -nH -A "*.iso" -A "*.raw.xz"'
 
+        # file count
+        path, dirs, files = next(os.walk(path))
+        file_count_prev = len(files)
 
-# ----- # ----- # single download
-# TODO
-def download_wget_single(content):
-    try:
-        path = os.getcwd()
-        wget = 'wget -P {dir} -r -c -w 5 --random-wait --no-http-keep-alive --limit-rate={bw} -e robots=off -np -nd -nH -A "*.iso" -A "*.raw.xz" {url}'.format(dir=path,url=content, bw=wgetBandwidth)
+        # dir size
+        dirSize = subprocess.check_output(['du','-s', path]).split()[0].decode('utf-8')
 
         # file size
         fileSize = subprocess.getoutput('wget "' + content + '" --spider --server-response -O - 2>&1| sed -ne "/Content-Length/{s/.*: //;p}"')
-        # print(bytes2human(int(fileSize)))
 
         # free storage
-        freeStorage = shutil.disk_usage(path).free
-        # print(bytes2human(int(freeStorage)))
+        freeStorage = shutil.disk_usage(path).free/1000
 
         if (int(freeStorage) >= int(fileSize)):
 
@@ -547,78 +554,17 @@ def download_wget_single(content):
                             return returned_value
 
                 else:
-                    removeFiles(path, file_count_prev)
+                    if booleanSpace:
+                        removeFiles(path, file_count_prev)
                     return returned_value
 
         else:
             print("\nnot enough space")
-            print("Directory size: " + bytes2human(int(fileSize)))
-            print("free Space: " + bytes2human(int(freeStorage)))
-            removeFiles(path, file_count_prev)
-            return 507
-
-    except KeyboardInterrupt:
-        print("\nInterupt by User\n")
-        exit()
-
-    except:
-        print("error: " + sys.exc_info()[0])
-
-
-# ----- # ----- # multi download
-def download_wget(content,bandwidth):
-    try:
-        if ";" in content:
-            swap = content.split(";")
-            content = swap[0]
-            directory = swap[1]
-        else:
-            directory = ""
-
-        path = os.path.join(os.getcwd(),directory)
-        wget = 'wget -P {dir} -r -c -w 5 --random-wait --no-http-keep-alive --limit-rate={bw} -e robots=off -np -nd -nH -A "*.iso" -A "*.raw.xz" {url}'.format(dir=path,url=content, bw=bandwidth)
-
-        # file count
-        path, dirs, files = next(os.walk(path))
-        file_count_prev = len(files)
-
-        # dir size
-        size = subprocess.check_output(['du','-s', path]).split()[0].decode('utf-8')
-
-        # free storage
-        freeStorage = shutil.disk_usage(path).free/1000
-
-        if (int(freeStorage) >= int(size)):
-
-            i=0
-            returned_value = ""
-
-            while i < 3:
-                returned_value = os.system("echo \'" + wget + "\' >&1 | bash")
-
-                if returned_value > 0:
-                    if returned_value == 2048:
-                        return returned_value
-                    else:
-                        print("Error Code: " + str(returned_value))
-                        i += 1
-                        timer = random.randint(200,1000)/100
-                        print("\nsleep for " + str(timer) + "s")
-                        time.sleep(timer)
-
-                        if i == 3:
-                            print("\nThe was the Command: \n%s" % wget)
-                            return returned_value
-
-                else:
-                    removeFiles(path, file_count_prev)
-                    return returned_value
-
-        else:
-            print("\nnot enough space")
-            print("Directory size: " + bytes2human(int(size)*1000))
+            print("Directory size: " + bytes2human(int(dirSize)*1000))
             print("free Space: " + bytes2human(freeStorage*1000))
-            removeFiles(path, file_count_prev)
+
+            if booleanSpace:
+                removeFiles(path, file_count_prev)
             return 507
 
     except KeyboardInterrupt:
@@ -626,7 +572,7 @@ def download_wget(content,bandwidth):
         exit()
 
     except:
-        print("error: " + sys.exc_info()[0])
+        print("error: " + str(sys.exc_info()))
 
 
 # - - - - - # - - - - - # - - - - - # - - - - - #
@@ -703,7 +649,7 @@ def list_youtube_dl(list_youtube_dl):
         exit()
 
     except:
-        print("error: " + sys.exc_info()[0])
+        print("error: " + str(sys.exc_info()))
 
     finally:
         # will always be executed last, with or without exception
@@ -760,7 +706,7 @@ def extractor(content):
 
 # ----- # ----- # hosts
 def host_default(content):
-    if not parameters_playlist:
+    if not booleanPlaylist:
         ydl_opts = {
             'outtmpl': '%(title)s',
             'restrictfilenames': True,
