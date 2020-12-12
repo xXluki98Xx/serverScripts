@@ -52,6 +52,7 @@ def formatingFilename(text):
                         '.mp4', '.mkv', '.avi',
                         '.flac', '.wav', '.mp3',
                         '.py', '.txt', '.md',
+                        '.iso', '.zip',
                     ]
 
     swap = text.casefold()
