@@ -531,15 +531,20 @@ def wget_list(itemList):
     try:
         for item in urlCopy:
             if item != "" :
-                print(item)
+                if item.startswith('#'):
+                    urlList.remove(item)
+                    continue
 
+                print("download: " + item)
+                
                 if booleanSync:
-                    print("download: " + item)
                     wget_download(str(item))
                 else:
                     if wget_download(str(item)) == 0:
                         urlList.remove(item)
                         print("\nremoved: " + str(item) + " | rest list " + str(urlList))
+            else:
+                urlList.remove(item)
 
     except KeyboardInterrupt:
         if booleanSync:
@@ -577,10 +582,12 @@ def wget_download(content):
 
         path = os.path.join(os.getcwd(),directory)
 
-        wget = 'wget -P {dir} -c -w 5 --random-wait --limit-rate={bw} -e robots=off {url}'.format(dir=path,url=content, bw=floatBandwidth)
+        wget = 'wget -P {dir} -c -w 5 --random-wait --limit-rate={bw} -e robots=off "{url}"'.format(dir=path,url=content, bw=floatBandwidth)
+
+        # --no-http-keep-alive
 
         if booleanSync:
-            wget = wget + ' -r --no-http-keep-alive -np -nd -nH -A "*.iso" -A "*.raw.xz"'
+            wget = wget + ' -r --no-cache -np -nd -nH -A iso,xz'
 
         # file count
         path, dirs, files = next(os.walk(path))
@@ -589,13 +596,17 @@ def wget_download(content):
         # dir size
         dirSize = subprocess.check_output(['du','-s', path]).split()[0].decode('utf-8')
 
-        # file size
-        fileSize = subprocess.getoutput('wget "' + content + '" --spider --server-response -O - 2>&1| sed -ne "/Content-Length/{s/.*: //;p}"')
-
         # free storage
-        freeStorage = shutil.disk_usage(path).free/1000
+        freeStorage = shutil.disk_usage(path).free
 
-        if (int(freeStorage) >= int(fileSize)):
+        try:
+            # file size
+            fileSize = subprocess.getoutput('wget "' + content + '" --spider --server-response -O - 2>&1| sed -ne "/Content-Length/{s/.*: //;p}"')
+            testSize = int(fileSize)
+        except:
+            testSize = dirSize
+
+        if (int(freeStorage) >= int(testSize)):
 
             i=0
             returned_value = ""
@@ -625,7 +636,7 @@ def wget_download(content):
         else:
             print("\nnot enough space")
             print("Directory size: " + bytes2human(int(dirSize)*1000))
-            print("free Space: " + bytes2human(freeStorage*1000))
+            print("free Space: " + bytes2human(freeStorage))
 
             if booleanSpace:
                 removeFiles(path, file_count_prev)
@@ -700,11 +711,16 @@ def ydl_list(itemList):
     try:
         for item in urlCopy:
             if item != "" :
+                if item.startswith('#'):
+                    continue
+
                 print("\ncurrent Download: " + item)
 
                 if ydl_extractor(str(item)) == 0:
                     urlList.remove(item)
                     print("removed: " + str(item) + " | rest list " + str(urlList))
+            else:
+                urlList.remove(item)
 
     except KeyboardInterrupt:
         print("\nInterupt by User\n")
