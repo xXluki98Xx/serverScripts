@@ -48,7 +48,12 @@ def formatingFilename(text):
     reg = re.compile(r"[^\w\d\s\-\_\/\.]")
     reg3 = re.compile(r"-{3,}")
 
-    extensionsList = ['.mp4', '.txt', '.mkv', '.flac', '.wav', '.mp3']
+    extensionsList = [
+                        '.mp4', '.mkv', '.avi',
+                        '.flac', '.wav', '.mp3',
+                        '.py', '.txt', '.md',
+                    ]
+
     swap = text.casefold()
 
     swap = re.sub(reg, '', swap)
@@ -184,6 +189,7 @@ def testWebpage(url):
   else:
         return 0
 
+
 # ----- #
 def getRootPath():
     global pathToRoot
@@ -201,6 +207,7 @@ def getRootPath():
         pathToRoot = pathToRoot.replace("dl.py","").rstrip('\n')
     except:
         pathToRoot = os.getcwd()
+
 
 # ----- #
 def getUserCredentials(platform):
@@ -252,22 +259,56 @@ def renameEpisode(season, episode, title, seasonOffset):
 
 # ----- #
 def func_rename(filePath, platform, offset, cut):
-    path, dirs, files = next(os.walk(filePath))
+    if os.path.isfile(filePath):
+        old = os.path.join(os.getcwd(),filePath)
+        new = os.path.join(os.getcwd(),formatingFilename(filePath))
+        os.rename(old, new)
+    else:
+        try:
+            path, dirs, files = next(os.walk(filePath))
+        except:
+            print("could the path be wrong?")
+
+        for directory in dirs:
+            func_rename(os.path.join(filePath, directory), platform, offset, cut)
+
+        for f in os.listdir(path):
+            old = os.path.join(path,f)
+            f = f[offset:]
+            # f = f[:cut]
+
+            seasonOffset = 0
+            if booleanSingle:
+                seasonOffset = 1
+
+            if platform == "crunchyroll":
+                fSwap = formatingFilename(f).split("-", 4)
+                f = renameEpisode(fSwap[1], fSwap[3], fSwap[4], 1)
+
+            new = os.path.join(path,formatingFilename(f))
+            os.rename(old, new)
+
+        try:
+            os.rename(filePath, formatingDirectories(filePath))
+        except:
+            pass
+
+
+# ----- #
+def func_replace(filePath, old, new):
+    try:
+        path, dirs, files = next(os.walk(filePath))
+    except:
+        print("could the path be wrong?")
 
     for directory in dirs:
-        func_rename(os.path.join(filePath, directory), platform, offset, cut)
-        
+        func_replace(os.path.join(filePath, directory), old, new)
+
     for f in os.listdir(path):
-        old = os.path.join(path,f)
-        f = f[offset:]
-        # f = f[:cut]
-
-        if platform == "crunchyroll":
-            fSwap = formatingFilename(f).split("-", 4)
-            f = renameEpisode(fSwap[1], fSwap[3], fSwap[4], 1)
-
-        new = os.path.join(path,formatingFilename(f))
-        os.rename(old, new)
+        oldFile = os.path.join(path,f)
+        f = f.replace(old, new)
+        newFile = os.path.join(path,formatingFilename(f))
+        os.rename(oldFile, newFile)
 
     try:
         os.rename(filePath, formatingDirectories(filePath))
@@ -321,7 +362,7 @@ def convertFilesFfmpeg(fileName, newFormat, subPath):
 @click.option("-dl","--dub-lang", default="", help="Enter language Code (de / en)")
 
 def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file, sub_lang, dub_lang, playlist, no_remove, update_packages):
-    
+
     getRootPath()
 
     if update_packages:
@@ -360,17 +401,35 @@ def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file, sub_lang, 
 @click.option("-os", "--offset", default=0, help="String Offset")
 @click.option("-c", "--cut", default=0, help="Cut String")
 @click.option("-cr", "--crunchyroll", default=False, is_flag=True, help="syntax Crunchyroll")
+@click.option("-s", "--single", default=False, is_flag=True, help="series is only one Season")
 
 # arguments
 @click.argument('rename', nargs=-1)
-def rename(rename, offset, cut, crunchyroll):
+def rename(rename, offset, cut, crunchyroll, single):
     platform = ""
+
+    global booleanSingle
+    booleanSingle = single
 
     if crunchyroll:
         platform = "crunchyroll"
 
     for itemPath in rename:
         func_rename(itemPath, platform, offset, cut)
+
+
+# ----- # ----- # replace command
+@main.command(help="Path, old String, new String")
+
+# switch
+@click.option("-o", "--old", default="", help="old String")
+@click.option("-n", "--new", default="", help="new String")
+
+# arguments
+@click.argument('replace', nargs=-1)
+def replace(replace, old, new):
+    for itemPath in replace:
+        func_replace(itemPath, old, new)
 
 
 # ----- # ----- # convertFiles command
@@ -852,7 +911,7 @@ def host_animeondemand(content):
 # -----
 def host_crunchyroll(content):
     parameter = getUserCredentials("crunchyroll")
-    output = getLanguage("crunchyroll")
+    output = str(getLanguage("crunchyroll"))
 
     if "www." not in content:
         swap = content.split('/', 2)
