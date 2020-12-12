@@ -49,10 +49,12 @@ def formatingFilename(text):
     reg3 = re.compile(r"-{3,}")
 
     extensionsList = [
-                        '.mp4', '.mkv', '.avi', '.m4a',
-                        '.flac', '.wav', '.mp3',
-                        '.py', '.txt', '.md',
-                        '.iso', '.zip',
+                        '.mp4', '.mkv', '.avi', '.m4a', '.mov',
+                        '.flac', '.wav', '.mp3', '.aac',
+                        '.py', '.txt', '.md', '.pdf', '.doc', 'docx',
+                        '.iso', '.zip', '.rar',
+                        '.jpg', '.jpeg', '.svg', '.png',
+                        '.csv', '.html', '.ppt', '.pptx', '.xls', '.xlsx'
                     ]
 
     swap = text.casefold()
