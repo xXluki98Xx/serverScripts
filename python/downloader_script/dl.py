@@ -177,16 +177,20 @@ def loadConfig():
 
 # ----- #
 def testWebpage(url):
-  req = urllib.request.Request(url, headers = {"User-Agent": "Mozilla/5.0"})
-  try:
+    print(url)
+    req = urllib.request.Request(url, headers = {"User-Agent": "Mozilla/5.0"})
+    try:
         conn = urllib.request.urlopen(req)
-  except urllib.error.HTTPError as e:
+    except urllib.error.HTTPError as e:
+        if e.code == 403:
+            return 0
+        
         print('HTTPError: {}'.format(e.code))
         return e.code
-  except urllib.error.URLError as e:
+    except urllib.error.URLError as e:
         print('URLError: {}'.format(e.reason))
         return e.code
-  else:
+    else:
         return 0
 
 
@@ -496,7 +500,8 @@ def wget(wget, space, sync):
         else:
             try:
                 url = input("\nPlease enter the Url:\n")
-                download_wget_single(url)
+                wget_download(url)
+
             except KeyboardInterrupt:
                 pass
 
@@ -645,24 +650,28 @@ def wget_download(content):
 # - - - - - # - - - - - # - - - - - # - - - - - #
 
 # ----- # ----- # single URL
-@main.command(help="Enter an URL")
+@main.command(help="Enter an URL for YoutubeDL")
+
+# arguments
 @click.argument('url', nargs=-1)
-def url(url):
+def ydl(url):
     repeat = True
 
     while repeat:
         if url != "":
             for item in url:
-                print(url)
-                print(item)
-                extractor(item)
+                if os.path.isfile(item):
+                    ydl_list(item)
+                else:
+                    ydl_extractor(item)
+                
             url = ""
             elapsedTime()
 
         else:
             try:
                 url = input("\nPlease enter the Url:\n")
-                extractor(url)
+                ydl_extractor(url)
 
             except KeyboardInterrupt:
                 pass
@@ -680,13 +689,10 @@ def url(url):
 
 
 # ----- # ----- # list
-@main.command(help="Enter an List with URL for Youtube-DL")
-@click.argument("list_youtube_dl", nargs= -1)
-def list_youtube_dl(list_youtube_dl):
-    for dList in list_youtube_dl:
-        with safer.open(dList) as f:
-            urlList = f.readlines()
-            urlList = [x.strip() for x in urlList]
+def ydl_list(itemList):
+    with safer.open(itemList) as f:
+        urlList = f.readlines()
+        urlList = [x.strip() for x in urlList]
 
     urlCopy = urlList.copy()
     print("list: " + str(urlCopy))
@@ -696,13 +702,13 @@ def list_youtube_dl(list_youtube_dl):
             if item != "" :
                 print("\ncurrent Download: " + item)
 
-                if extractor(str(item)) == 0:
+                if ydl_extractor(str(item)) == 0:
                     urlList.remove(item)
                     print("removed: " + str(item) + " | rest list " + str(urlList))
 
     except KeyboardInterrupt:
         print("\nInterupt by User\n")
-        with safer.open(dList, 'w') as f:
+        with safer.open(itemList, 'w') as f:
             for url in urlList:
                 f.write("%s\n" % url)
         exit()
@@ -712,16 +718,41 @@ def list_youtube_dl(list_youtube_dl):
 
     finally:
         # will always be executed last, with or without exception
-        with safer.open(dList, 'w') as f:
+        with safer.open(itemList, 'w') as f:
             for url in urlList:
                 f.write("%s\n" % url)
         sys.exit(ExitStatus.success)
         elapsedTime()
 
 
+# ----- # ----- # download
+def ydl_download(content, parameters, output):
+    ydl = 'youtube-dl {parameter} {output} "{url}"'.format(parameter=parameters, output=output, url=content)
+
+    i=0
+    returned_value = ""
+
+    while i < 3:
+
+        returned_value = os.system(ydl)
+        print(returned_value)
+
+        if returned_value > 0:
+            i += 1
+            timer = random.randint(200,1000)/100
+            print("\nsleep for " + str(timer) + "s")
+            time.sleep(timer)
+
+            if i == 3:
+                print("\nThe was the Command: \n%s" % ydl)
+                return returned_value
+        else:
+            return returned_value
+
+
 # ----- # ----- # extractors
-def extractor(content):
-    webpageResult = testWebpage(content.split(";")[0])
+def ydl_extractor(content):
+    webpageResult = testWebpage(content.split(";")[0].split("?")[0])
     if webpageResult != 0:
         return webpageResult
 
@@ -780,11 +811,11 @@ def host_default(content):
         filename = getTitleFormated(filename)
 
         output = '-f best --no-playlist -o "{title}.%(ext)s"'.format(title = filename)
-        return download_youtube_dl(content, parameters, output)
+        return ydl_download(content, parameters, output)
 
     else:
         output = '-i -f best -o "%(extractor)s--%(playlist_uploader)s_%(playlist_title)s/%(playlist_index)s_%(title)s.%(ext)s"'
-        return download_youtube_dl(content, parameters, output)
+        return ydl_download(content, parameters, output)
 
 
 # -----
@@ -798,7 +829,7 @@ def host_mostly(content):
 
     title = getTitleFormated(title)
     output = '-f best -o "{title}.%(ext)s"'.format(title=title)
-    return download_youtube_dl(content, parameters, output)
+    return ydl_download(content, parameters, output)
 
 
 # --------------- # ...
@@ -822,7 +853,7 @@ def host_animeholics(content):
 
     title = getTitleFormated(serie + "-" + episode)
     output = '-f best -o "{title}.%(ext)s"'.format(title=title)
-    return download_youtube_dl(url, parameters, output)
+    return ydl_download(url, parameters, output)
 
 
 # -----
@@ -830,7 +861,7 @@ def host_hanime(content):
     title = content.rsplit('?',1)[0].rsplit('/',1)[1]
     title = getTitleFormated(title)
     output = '-f best -o "{title}.%(ext)s"'.format(title=title)
-    return download_youtube_dl(content, parameters, output)
+    return ydl_download(content, parameters, output)
 
 
 # -----
@@ -856,7 +887,7 @@ def host_hahomoe(content):
 
     title = getTitleFormated(title)
     output = '-f best -o "{title}.mp4"'.format(title=title)
-    return download_youtube_dl(url, parameters, output)
+    return ydl_download(url, parameters, output)
 
 
 # -----
@@ -877,7 +908,7 @@ def host_sxyprn(content):
 
     title = getTitleFormated(title)
     output = '-f best -o "{title}.%(ext)s"'.format(title=title)
-    return download_youtube_dl(content, parameters, output)
+    return ydl_download(content, parameters, output)
 
 
 # -----
@@ -885,7 +916,7 @@ def host_xvideos(content):
     title = content.rsplit("/",1)[1]
     title = getTitleFormated(title)
     output = '-f best -o "{title}.mp4"'.format(title=title)
-    return download_youtube_dl(content, parameters, output)
+    return ydl_download(content, parameters, output)
 
 
 # -----
@@ -893,7 +924,7 @@ def host_porngo(content):
     title = content.rsplit('/',1)[0].rsplit('/',1)[1]
     title = getTitleFormated(title)
     output = '-f best -o "{title}.%(ext)s"'.format(title=title)
-    return download_youtube_dl(content, parameters, output)
+    return ydl_download(content, parameters, output)
 
 
 # --------------- # Anime
@@ -905,7 +936,7 @@ def host_animeondemand(content):
         content = "https://www." + swap[2]
 
     output = "-f 'best[format_id*=ger-Dub]' -o '%(playlist)s/episode-%(playlist_index)s.%(ext)s'"
-    return download_youtube_dl(content, parameter, output)
+    return ydl_download(content, parameter, output)
 
 
 # -----
@@ -918,7 +949,7 @@ def host_crunchyroll(content):
         content = "https://www." + swap[2]
 
     output += " -i -o '%(playlist)s/season-%(season_number)s-episode-%(episode_number)s-%(episode)s.%(ext)s'"
-    return download_youtube_dl(content, parameter, output)
+    return ydl_download(content, parameter, output)
 
 
 # -----
@@ -931,7 +962,7 @@ def host_wakanim(content):
         content = "https://www." + swap[2]
 
     output = "-f 'best[format_id*=ger-Dub]' -o '%(playlist)s/episode-%(playlist_index)s.%(ext)s'"
-    return download_youtube_dl(content, parameter, output)
+    return ydl_download(content, parameter, output)
 
 
 # --------------- # platformen
@@ -944,7 +975,7 @@ def host_udemy(content):
     print(url)
 
     output = "-f best -o '%(playlist)s - {title}/%(chapter_number)s-%(chapter)s/%(playlist_index)s-%(title)s.%(ext)s'".format(title=title)
-    return download_youtube_dl(url, parameter, output)
+    return ydl_download(url, parameter, output)
 
 
 # -----
@@ -961,7 +992,7 @@ def host_vimeo(content):
     content = content.split("?")[0]
     title = getTitleFormated(title)
     output = '--referer "{reference}" -f best -o "{title}.%(ext)s"'.format(reference=reference, title=title)
-    return download_youtube_dl(content, parameters, output)
+    return ydl_download(content, parameters, output)
 
 
 # -----
@@ -974,32 +1005,7 @@ def host_cloudfront(content):
 
     title = getTitleFormated(title)
     output = '-f best -o "{title}.mp4"'.format(title=title)
-    return download_youtube_dl(content, parameters, output)
-
-
-# ----- # ----- # download
-def download_youtube_dl(content, parameters, output):
-    ydl = 'youtube-dl {parameter} {output} "{url}"'.format(parameter=parameters, output=output, url=content)
-
-    i=0
-    returned_value = ""
-
-    while i < 3:
-
-        returned_value = os.system(ydl)
-        print(returned_value)
-
-        if returned_value > 0:
-            i += 1
-            timer = random.randint(200,1000)/100
-            print("\nsleep for " + str(timer) + "s")
-            time.sleep(timer)
-
-            if i == 3:
-                print("\nThe was the Command: \n%s" % ydl)
-                return returned_value
-        else:
-            return returned_value
+    return ydl_download(content, parameters, output)
 
 
 # --------------- # main
