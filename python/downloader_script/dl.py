@@ -104,6 +104,22 @@ def bytes2human(n):
     return "%sB" % n
 
 
+# ----- # ----- # human readable info to byte
+def human2bytes(n):
+    size = n[-1]
+
+    switcher = {
+        'B': 1,
+        'K': 1000,
+        'M': pow(1000,2),
+        'G': pow(1000,3),
+    }
+
+    swapSize = float(n[:-1]) * switcher.get(size, 0)
+
+    return "%s" % swapSize
+
+
 # ----- # ----- # removing outdated files
 def removeFiles(path, file_count_prev):
     if not booleanRemoveFiles:
@@ -399,6 +415,9 @@ def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file, sub_lang, 
 
     if axel:
         parameters = parameters + " --external-downloader axel"
+
+        if bandwidth != "0":
+            parameters = parameters + " --external-downloader-args '-s {}'".format(human2bytes(bandwidth))
 
 
 # ----- # ----- # rename command
@@ -755,6 +774,8 @@ def ydl_download(content, parameters, output):
 
     i=0
     returned_value = ""
+
+    print(ydl)
 
     while i < 3:
 
