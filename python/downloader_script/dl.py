@@ -187,7 +187,7 @@ def testWebpage(url):
     except urllib.error.HTTPError as e:
         if e.code == 403:
             return 0
-        
+
         print('HTTPError: {}'.format(e.code))
         return e.code
     except urllib.error.URLError as e:
@@ -486,7 +486,7 @@ def wget(wget, space, sync):
     global booleanSync
     booleanSpace = space
     booleanSync = sync
-    
+
     repeat = True
 
     while repeat:
@@ -539,7 +539,7 @@ def wget_list(itemList):
                     continue
 
                 print("download: " + item)
-                
+
                 if booleanSync:
                     wget_download(str(item))
                 else:
@@ -678,7 +678,7 @@ def ydl(url):
                     ydl_list(item)
                 else:
                     ydl_extractor(item)
-                
+
             url = ""
             elapsedTime()
 
@@ -822,15 +822,19 @@ def host_default(content):
             'forcefilename':True
         }
 
-        with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(content, download=False)
-            filename = ydl.prepare_filename(info)
-            print(filename)
+        try:
+            with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(content, download=False)
+                filename = ydl.prepare_filename(info)
+                print(filename)
 
-        filename = getTitleFormated(filename)
+            filename = getTitleFormated(filename)
 
-        output = '-f best --no-playlist -o "{title}.%(ext)s"'.format(title = filename)
-        return ydl_download(content, parameters, output)
+            output = '-f best --no-playlist -o "{title}.%(ext)s"'.format(title = filename)
+            return ydl_download(content, parameters, output)
+        except:
+            output = '-f best --no-playlist -o "%(title)s.%(ext)s"'
+            return ydl_download(content, parameters, output)
 
     else:
         output = '-i -f best -o "%(extractor)s--%(playlist_uploader)s_%(playlist_title)s/%(playlist_index)s_%(title)s.%(ext)s"'
