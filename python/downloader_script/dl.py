@@ -454,11 +454,16 @@ def convertFiles(newformat, path, subpath, ffmpeg):
         for itemPath in path:
             sPath = formatingDirectories(itemPath)
             func_rename(itemPath, "", 0, 0)
-            paths, dirs, files = next(os.walk(sPath))
 
-            for f in os.listdir(paths):
-                old = os.path.join(paths,f)
-                convertFilesFfmpeg(old, newformat, subpath)
+            try:
+                paths, dirs, files = next(os.walk(sPath))
+
+                for f in os.listdir(paths):
+                    old = os.path.join(paths,f)
+                    convertFilesFfmpeg(old, newformat, subpath)
+            except:
+                if os.path.isfile(os.path.join(os.getcwd(),sPath)):
+                    convertFilesFfmpeg(sPath, newformat, subpath)
 
 
 # - - - - - # - - - - - # - - - - - # - - - - - #
