@@ -19,7 +19,7 @@ import ffmpeg
 from exitstatus import ExitStatus
 
 
-# --------------- # help functions
+# - - - - - # - - - - - # - - - - - # - - - - - # help functions
 
 # ----- # ----- # title
 def getTitleFormated(title):
@@ -54,7 +54,7 @@ def formatingFilename(text):
                         '.py', '.txt', '.md', '.pdf', '.doc', 'docx',
                         '.iso', '.zip', '.rar',
                         '.jpg', '.jpeg', '.svg', '.png',
-                        '.csv', '.html', '.ppt', '.pptx', '.xls', '.xlsx'
+                        '.csv', '.html', '.ppt', '.pptx', '.xls', '.xlsx',
                     ]
 
     swap = text.casefold()
@@ -74,6 +74,7 @@ def formatingFilename(text):
     swap = swap.replace("§", "---")
 
     return swap
+
 
 # ----- # ----- # format folder
 def formatingDirectories(text):
@@ -101,6 +102,7 @@ def bytes2human(n):
         if n >= prefix[s]:
             value = float(n) / prefix[s]
             return '%.1f%s' % (value, s)
+
     return "%sB" % n
 
 
@@ -129,8 +131,9 @@ def removeFiles(path, file_count_prev):
         path, dirs, files = next(os.walk(path))
         file_count = len(files)
 
-        print("files before: " + str(file_count_prev))
-        print("files after: " + str(file_count))
+        if booleanVerbose:
+            print("files before: " + str(file_count_prev))
+            print("files after: " + str(file_count))
 
         if (file_count > file_count_prev):
             files = []
@@ -140,8 +143,9 @@ def removeFiles(path, file_count_prev):
                 if ( os.stat(os.path.join(path,f)).st_mtime < (datetime.datetime.now().timestamp() - (6 * 30 * 86400)) ):
                     files.append(os.path.join(path,f))
 
-            print(files)
-            print(index)
+            if booleanVerbose:
+                print(files)
+                print(index)
 
             if index > len(files):
                 for i in files:
@@ -156,8 +160,9 @@ def removeFiles(path, file_count_prev):
                 if ( os.stat(os.path.join(path,f)).st_mtime < (datetime.datetime.now().timestamp() - (12 * 30 * 86400)) ):
                     files.append(os.path.join(path,f))
 
-            print(files)
-            print(index)
+            if booleanVerbose:
+                print(files)
+                print(index)
 
             if index > len(files):
                 for i in files:
@@ -184,19 +189,20 @@ def update():
     print(error.decode('ascii'))
 
 
-# ----- #
+# ----- # ----- # load configs from env file
 def loadConfig():
     global data
-
     path = os.path.join(pathToRoot, 'env')
 
     with open(path) as json_file:
         data = json.load(json_file)
 
 
-# ----- #
+# ----- # ----- # webpage available test
 def testWebpage(url):
-    print(url)
+    if booleanVerbose:
+        print("\nwebpage test for: \n" + url)
+    
     req = urllib.request.Request(url, headers = {"User-Agent": "Mozilla/5.0"})
     try:
         conn = urllib.request.urlopen(req)
@@ -204,23 +210,23 @@ def testWebpage(url):
         if e.code == 403:
             return 0
 
-        print('HTTPError: {}'.format(e.code))
+        print('\nHTTPError: {}'.format(e.code))
         return e.code
     except urllib.error.URLError as e:
-        print('URLError: {}'.format(e.reason))
+        print('\nURLError: {}'.format(e.reason))
         return e.code
     else:
         return 0
 
 
-# ----- #
+# ----- # ----- # rootpath for python skript
 def getRootPath():
     global pathToRoot
     pathToRoot = ""
 
     try:
         path = os.getenv('PATH').split(":")
-        # print(path)
+
         for subPath in path:
             pathTest = subprocess.check_output(['find', subPath, '-name', 'dl.py']).decode('utf-8')
             if pathTest != "":
@@ -231,8 +237,11 @@ def getRootPath():
     except:
         pathToRoot = os.getcwd()
 
+    if booleanVerbose:
+        print("\nrootpath is: \n" + pathToRoot)
 
-# ----- #
+
+# ----- # ----- # usercredentials from env file
 def getUserCredentials(platform):
     credentialList = ['animeondemand', 'udemy']
 
@@ -246,7 +255,7 @@ def getUserCredentials(platform):
     return parameter
 
 
-# ----- #
+# ----- # ----- # language settings
 def getLanguage(platform):
     output = "--no-mark-watched --hls-prefer-ffmpeg --socket-timeout 30 "
 
@@ -255,15 +264,14 @@ def getLanguage(platform):
         if dubLang == "de": return output + "-f 'best[format_id*=adaptive_hls-audio-deDE][format_id!=hardsub]'"
 
 
-# ----- #
+# ----- # ----- # time measurement
 def elapsedTime():
     time_elapsed = datetime.datetime.now() - start_time
     print('\nTime elapsed (hh:mm:ss.ms): {}'.format(time_elapsed))
 
 
-# ----- #
+# ----- # ----- # 
 def renameEpisode(season, episode, title, seasonOffset):
-
     f = "s"
     if len(season) == 1:
         f += "0" + str( int(season) + int(seasonOffset))
@@ -280,7 +288,7 @@ def renameEpisode(season, episode, title, seasonOffset):
     return f
 
 
-# ----- #
+# ----- # ----- # 
 def func_rename(filePath, platform, offset, cut):
     if os.path.isfile(filePath):
         old = os.path.join(os.getcwd(),filePath)
@@ -290,7 +298,7 @@ def func_rename(filePath, platform, offset, cut):
         try:
             path, dirs, files = next(os.walk(filePath))
         except:
-            print("could the path be wrong?")
+            print("\ncould the path be wrong?\n")
 
         for directory in dirs:
             func_rename(os.path.join(filePath, directory), platform, offset, cut)
@@ -317,12 +325,12 @@ def func_rename(filePath, platform, offset, cut):
             pass
 
 
-# ----- #
+# ----- # ----- # 
 def func_replace(filePath, old, new):
     try:
         path, dirs, files = next(os.walk(filePath))
     except:
-        print("could the path be wrong?")
+        print("\ncould the path be wrong?\n")
 
     for directory in dirs:
         func_replace(os.path.join(filePath, directory), old, new)
@@ -339,7 +347,7 @@ def func_replace(filePath, old, new):
         pass
 
 
-# ----- #
+# ----- # ----- # 
 def convertFilesFfmpeg(fileName, newFormat, subPath):
     newFile = fileName.rsplit(".", 1)[0]
     output = ""
@@ -364,7 +372,9 @@ def convertFilesFfmpeg(fileName, newFormat, subPath):
     ffmpeg.input(fileName).output(output + "." + newFormat).run()
 
 
-# --------------- # main functions
+# - - - - - # - - - - - # - - - - - # - - - - - # main functions
+
+# ----- # ----- # main
 @click.group()
 
 # switch
@@ -372,6 +382,7 @@ def convertFilesFfmpeg(fileName, newFormat, subPath):
 @click.option("-p", "--playlist", default=False, is_flag=True, help="Playlist")
 @click.option("-nr", "--no-remove", default=False, is_flag=True, help="remove Files at wget")
 @click.option("-up", "--update-packages", default=False, is_flag=True, help="updates packages listed in requirements.txt")
+@click.option("-v", "--verbose", default=False, is_flag=True, help="Using Verbose mode")
 
 # int
 @click.option("--retries", default=5, help="Enter an Number for Retries")
@@ -384,15 +395,7 @@ def convertFilesFfmpeg(fileName, newFormat, subPath):
 @click.option("-sl","--sub-lang", default="", help="Enter language Code (de / en)")
 @click.option("-dl","--dub-lang", default="", help="Enter language Code (de / en)")
 
-def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file, sub_lang, dub_lang, playlist, no_remove, update_packages):
-
-    getRootPath()
-
-    if update_packages:
-        update()
-
-    loadConfig()
-
+def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file, sub_lang, dub_lang, playlist, no_remove, update_packages, verbose):
     global parameters
     global floatBandwidth
     global cookieFile
@@ -400,6 +403,7 @@ def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file, sub_lang, 
     global dubLang
     global booleanPlaylist
     global booleanRemoveFiles
+    global booleanVerbose
 
     floatBandwidth = bandwidth
     cookieFile = cookie_file
@@ -407,8 +411,15 @@ def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file, sub_lang, 
     dubLang = dub_lang
     booleanPlaylist = playlist
     booleanRemoveFiles = no_remove
+    booleanVerbose = verbose
 
-    parameters = "--retries {retries} --min-sleep-interval {min_sleep} --max-sleep-interval {max_sleep} -c".format(retries=retries, min_sleep=min_sleep, max_sleep=max_sleep)
+    getRootPath()
+    loadConfig()
+
+    if update_packages:
+        update()
+
+    parameters = "--retries {retries} --min-sleep-interval {min_sleep} --max-sleep-interval {max_sleep} -c".format(retries = retries, min_sleep = min_sleep, max_sleep = max_sleep)
 
     if bandwidth != "0":
         parameters = parameters + " --limit-rate {}".format(bandwidth)
@@ -486,15 +497,10 @@ def convertFiles(newformat, path, subpath, ffmpeg):
 
 
 # - - - - - # - - - - - # - - - - - # - - - - - #
-# - - - - - # - - - - - # - - - - - # - - - - - #
-# - - - - - # - - - - - # - - - - - # - - - - - #
 # - - - - - #                       # - - - - - #
 # - - - - - #       wget-download   # - - - - - #
 # - - - - - #                       # - - - - - #
 # - - - - - # - - - - - # - - - - - # - - - - - #
-# - - - - - # - - - - - # - - - - - # - - - - - #
-# - - - - - # - - - - - # - - - - - # - - - - - #
-
 
 # ----- # ----- # wget
 @main.command(help="Enter an URL")
@@ -544,7 +550,7 @@ def wget(wget, space, sync):
             repeat = False
 
 
-# -----
+# ----- # ----- #
 def wget_list(itemList):
     with safer.open(itemList) as f:
         urlList = f.readlines()
@@ -562,7 +568,7 @@ def wget_list(itemList):
                     urlList.remove(item)
                     continue
 
-                print("download: " + item)
+                print("\ndownloading: " + item)
 
                 if booleanSync:
                     wget_download(str(item))
@@ -585,7 +591,7 @@ def wget_list(itemList):
             exit()
 
     except:
-        print("error: " + str(sys.exc_info()))
+        print("\nerror: " + str(sys.exc_info()))
 
     finally:
         # will always be executed last, with or without exception
@@ -597,7 +603,7 @@ def wget_list(itemList):
         sys.exit(ExitStatus.success)
 
 
-# -----
+# ----- # ----- #
 def wget_download(content):
     try:
         if ";" in content:
@@ -609,7 +615,7 @@ def wget_download(content):
 
         path = os.path.join(os.getcwd(),directory)
 
-        wget = 'wget -P {dir} -c -w 5 --random-wait --limit-rate={bw} -e robots=off "{url}"'.format(dir=path,url=content, bw=floatBandwidth)
+        wget = 'wget -P {dir} -c -w 5 --random-wait --limit-rate={bw} -e robots=off "{url}"'.format(dir = path, url = content, bw = floatBandwidth)
 
         # --no-http-keep-alive
 
@@ -635,7 +641,7 @@ def wget_download(content):
 
         if (int(freeStorage) >= int(testSize)):
 
-            i=0
+            i = 0
             returned_value = ""
 
             while i < 3:
@@ -645,7 +651,7 @@ def wget_download(content):
                     if returned_value == 2048:
                         return returned_value
                     else:
-                        print("Error Code: " + str(returned_value))
+                        print("\nError Code: " + str(returned_value))
                         i += 1
                         timer = random.randint(200,1000)/100
                         print("\nsleep for " + str(timer) + "s")
@@ -678,13 +684,9 @@ def wget_download(content):
 
 
 # - - - - - # - - - - - # - - - - - # - - - - - #
-# - - - - - # - - - - - # - - - - - # - - - - - #
-# - - - - - # - - - - - # - - - - - # - - - - - #
 # - - - - - #                       # - - - - - #
 # - - - - - #   youtube-download    # - - - - - #
 # - - - - - #                       # - - - - - #
-# - - - - - # - - - - - # - - - - - # - - - - - #
-# - - - - - # - - - - - # - - - - - # - - - - - #
 # - - - - - # - - - - - # - - - - - # - - - - - #
 
 # ----- # ----- # single URL
@@ -733,7 +735,9 @@ def ydl_list(itemList):
         urlList = [x.strip() for x in urlList]
 
     urlCopy = urlList.copy()
-    print("list: " + str(urlCopy))
+
+    if booleanVerbose:
+        print("\nydl download list: \n" + str(urlCopy))
 
     try:
         for item in urlCopy:
@@ -757,7 +761,7 @@ def ydl_list(itemList):
         exit()
 
     except:
-        print("error: " + str(sys.exc_info()))
+        print("\nerror: \n" + str(sys.exc_info()))
 
     finally:
         # will always be executed last, with or without exception
@@ -770,17 +774,20 @@ def ydl_list(itemList):
 
 # ----- # ----- # download
 def ydl_download(content, parameters, output):
-    ydl = 'youtube-dl {parameter} {output} "{url}"'.format(parameter=parameters, output=output, url=content)
+    ydl = 'youtube-dl {parameter} {output} "{url}"'.format(parameter = parameters, output = output, url = content)
 
-    i=0
+    i = 0
     returned_value = ""
 
-    print(ydl)
+    if booleanVerbose:
+        print("\nydl command is: \n" + ydl + "\n")
 
     while i < 3:
 
         returned_value = os.system(ydl)
-        print(returned_value)
+
+        if booleanVerbose:
+            print("\nydl command return value: \n" + str(returned_value))
 
         if returned_value > 0:
             i += 1
@@ -814,13 +821,13 @@ def ydl_extractor(content):
         else:
             i = 1
             while testWebpage(content+"/"+str(i)) == 0:
-                extractor(content+"/"+str(i))
-                i=i+1
+                ydl_extractor(content+"/"+str(i))
+                i += 1
 
             i = 1
             while testWebpage(content+"/s"+str(i)) == 0:
-                extractor(content+"/s"+str(i))
-                i=i+1
+                ydl_extractor(content+"/s"+str(i))
+                i += 1
 
             return 0
 
@@ -837,7 +844,7 @@ def ydl_extractor(content):
     return host_default(content)
 
 
-# --------------- # media hoster
+# - - - - - # - - - - - # - - - - - # - - - - - # media hoster
 
 # ----- # ----- # hosts
 def host_default(content):
@@ -850,9 +857,11 @@ def host_default(content):
 
         try:
             with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-                info = ydl.extract_info(content, download=False)
+                info = ydl.extract_info(content, download = False)
                 filename = ydl.prepare_filename(info)
-                print(filename)
+
+                if booleanVerbose:
+                    print("\nextracted filename: \n" + filename)
 
             filename = getTitleFormated(filename)
 
@@ -867,8 +876,7 @@ def host_default(content):
         return ydl_download(content, parameters, output)
 
 
-# -----
-# fruithosted, oloadcdn, verystream, vidoza, vivo,
+# ----- # ----- # fruithosted, oloadcdn, verystream, vidoza, vivo,
 def host_mostly(content):
     if ";" in content:
         title = content.split(";",1)[1]
@@ -877,46 +885,24 @@ def host_mostly(content):
         title = str(input("\nPlease enter the Title:\n"))
 
     title = getTitleFormated(title)
-    output = '-f best -o "{title}.%(ext)s"'.format(title=title)
+    output = '-f best -o "{title}.%(ext)s"'.format(title = title)
+    
     return ydl_download(content, parameters, output)
 
 
-# --------------- # ...
-def host_animeholics(content):
-    url=content
-    webpage=""
-
-    req = urllib.request.Request(url, headers = {"User-Agent": "Mozilla/5.0"})
-    with urllib.request.urlopen(req) as response:
-        webpage = response.read()
-
-    url = str(webpage)[str(webpage).find("https://filegasm.com/watch/"):int(str(webpage).find("https://filegasm.com/watch/"))+43]
-
-    x = re.search('/\d/$|/s\d/$', content)
-    if x:
-        serie = content.rsplit('/',1)[0].rsplit('/',2)[1]
-        episode = content.rsplit('/',1)[0].rsplit('/',2)[2]
-    else:
-        serie = content.rsplit('/',1)[0].rsplit('/',1)[1]
-        episode = content.rsplit('/',1)[1]
-
-    title = getTitleFormated(serie + "-" + episode)
-    output = '-f best -o "{title}.%(ext)s"'.format(title=title)
-    return ydl_download(url, parameters, output)
-
-
-# -----
+# ----- # ----- #
 def host_hanime(content):
     title = content.rsplit('?',1)[0].rsplit('/',1)[1]
     title = getTitleFormated(title)
-    output = '-f best -o "{title}.%(ext)s"'.format(title=title)
+    output = '-f best -o "{title}.%(ext)s"'.format(title = title)
+    
     return ydl_download(content, parameters, output)
 
 
-# -----
+# ----- # ----- #
 def host_hahomoe(content):
-    url=content
-    webpage=""
+    url = content
+    webpage = ""
 
     req = urllib.request.Request(url, headers = {"User-Agent": "Mozilla/5.0"})
     with urllib.request.urlopen(req) as response:
@@ -935,14 +921,15 @@ def host_hahomoe(content):
         title = ""
 
     title = getTitleFormated(title)
-    output = '-f best -o "{title}.mp4"'.format(title=title)
+    output = '-f best -o "{title}.mp4"'.format(title = title)
+    
     return ydl_download(url, parameters, output)
 
 
-# -----
+# ----- # ----- #
 def host_sxyprn(content):
-    url=content
-    webpage=""
+    url = content
+    webpage = ""
 
     req = urllib.request.Request(url, headers = {"User-Agent": "Mozilla/5.0"})
     with urllib.request.urlopen(req) as response:
@@ -956,27 +943,32 @@ def host_sxyprn(content):
         title = title.split('-#',1)[0]
 
     title = getTitleFormated(title)
-    output = '-f best -o "{title}.%(ext)s"'.format(title=title)
+    output = '-f best -o "{title}.%(ext)s"'.format(title = title)
+    
     return ydl_download(content, parameters, output)
 
 
-# -----
+# ----- # ----- #
 def host_xvideos(content):
     title = content.rsplit("/",1)[1]
     title = getTitleFormated(title)
-    output = '-f best -o "{title}.mp4"'.format(title=title)
+    output = '-f best -o "{title}.mp4"'.format(title = title)
+    
     return ydl_download(content, parameters, output)
 
 
-# -----
+# ----- # ----- #
 def host_porngo(content):
     title = content.rsplit('/',1)[0].rsplit('/',1)[1]
     title = getTitleFormated(title)
-    output = '-f best -o "{title}.%(ext)s"'.format(title=title)
+    output = '-f best -o "{title}.%(ext)s"'.format(title = title)
+    
     return ydl_download(content, parameters, output)
 
 
-# --------------- # Anime
+# - - - - - # - - - - - # - - - - - # - - - - - # Anime
+
+# ----- # ----- #
 def host_animeondemand(content):
     parameter = getUserCredentials("animeondemand")
 
@@ -985,10 +977,11 @@ def host_animeondemand(content):
         content = "https://www." + swap[2]
 
     output = "-f 'best[format_id*=ger-Dub]' -o '%(playlist)s/episode-%(playlist_index)s.%(ext)s'"
+    
     return ydl_download(content, parameter, output)
 
 
-# -----
+# ----- # ----- #
 def host_crunchyroll(content):
     parameter = getUserCredentials("crunchyroll")
     output = str(getLanguage("crunchyroll"))
@@ -998,36 +991,29 @@ def host_crunchyroll(content):
         content = "https://www." + swap[2]
 
     output += " -i -o '%(playlist)s/season-%(season_number)s-episode-%(episode_number)s-%(episode)s.%(ext)s'"
+    
     return ydl_download(content, parameter, output)
 
 
-# -----
-def host_wakanim(content):
-    for p in data['wakanim']:
-        parameter = "-u '" + p['username'] + "' -p '" + p['password'] + "' " + parameters
+# - - - - - # - - - - - # - - - - - # - - - - - # platformen
 
-    if "www." not in content:
-        swap = content.split('/', 2)
-        content = "https://www." + swap[2]
-
-    output = "-f 'best[format_id*=ger-Dub]' -o '%(playlist)s/episode-%(playlist_index)s.%(ext)s'"
-    return ydl_download(content, parameter, output)
-
-
-# --------------- # platformen
+# ----- # ----- #
 def host_udemy(content):
     for p in data['udemy']:
         parameter = "-u '" + p['username'] + "' -p '" + p['password'] + "' " + parameters
 
     title = content.split('/',4)[4].rsplit('/',5)[0]
     url = "https://www.udemy.com/" + title
-    print(url)
 
-    output = "-f best -o '%(playlist)s - {title}/%(chapter_number)s-%(chapter)s/%(playlist_index)s-%(title)s.%(ext)s'".format(title=title)
+    if booleanVerbose:
+        print("udemy url: \n" + url)
+
+    output = "-f best -o '%(playlist)s - {title}/%(chapter_number)s-%(chapter)s/%(playlist_index)s-%(title)s.%(ext)s'".format(title = title)
+    
     return ydl_download(url, parameter, output)
 
 
-# -----
+# ----- # ----- #
 def host_vimeo(content):
     if ";" in content:
         swap = content.split(";")
@@ -1040,11 +1026,12 @@ def host_vimeo(content):
 
     content = content.split("?")[0]
     title = getTitleFormated(title)
-    output = '--referer "{reference}" -f best -o "{title}.%(ext)s"'.format(reference=reference, title=title)
+    output = '--referer "{reference}" -f best -o "{title}.%(ext)s"'.format(reference = reference, title = title)
+    
     return ydl_download(content, parameters, output)
 
 
-# -----
+# ----- # ----- #
 def host_cloudfront(content):
     if ";" in content:
         title = content.split(";",1)[1]
@@ -1053,13 +1040,13 @@ def host_cloudfront(content):
         title = str(input("\nPlease enter the Title:\n"))
 
     title = getTitleFormated(title)
-    output = '-f best -o "{title}.mp4"'.format(title=title)
+    output = '-f best -o "{title}.mp4"'.format(title = title)
+    
     return ydl_download(content, parameters, output)
 
 
-# --------------- # main
+# - - - - - # - - - - - # - - - - - # - - - - - # main
 if __name__ == "__main__":
-
     global start_time
     start_time = datetime.datetime.now()
 
