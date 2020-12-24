@@ -773,7 +773,10 @@ def ydl_list(itemList):
 
 
 # ----- # ----- # download
-def ydl_download(content, parameters, output):
+def ydl_download(content, parameters, output, stringReferer):
+    if stringReferer != "":
+        parameters += ' --referer "{reference}"'.format(reference = stringReferer)
+
     ydl = 'youtube-dl {parameter} {output} "{url}"'.format(parameter = parameters, output = output, url = content)
 
     i = 0
@@ -804,42 +807,53 @@ def ydl_download(content, parameters, output):
 
 # ----- # ----- # extractors
 def ydl_extractor(content):
-    webpageResult = testWebpage(content.split(";")[0].split("?")[0])
+    title = ""
+    stringReferer = ""
+
+    try:
+        (url, title, stringReferer) = content.split(';')
+    except ValueError:
+        try:
+            (url, title) = content.split(';')
+        except ValueError:
+            url = content
+
+    webpageResult = testWebpage(content.split("?")[0])
     if webpageResult != 0:
         return webpageResult
 
     mostly = ['fruithosted', 'oloadcdn', 'verystream', 'vidoza', 'vivo']
 
     for domain in mostly:
-        if domain in content : return host_mostly(content)
+        if domain in url : return host_mostly(url, title, stringReferer)
 
-    if ("animeholics" in content) : return host_animeholics(content)
+    if ("animeholics" in url) : return host_animeholics(url, title, stringReferer)
 
-    if ("haho.moe" in content) :
-        if (len(content.rsplit("/",1)[1]) < 3):
-            return host_hahomoe(content)
+    if ("haho.moe" in url) :
+        if (len(url.rsplit("/",1)[1]) < 3):
+            return host_hahomoe(url)
         else:
             i = 1
-            while testWebpage(content+"/"+str(i)) == 0:
-                ydl_extractor(content+"/"+str(i))
+            while testWebpage(url+"/"+str(i)) == 0:
+                ydl_extractor(url+"/"+str(i))
                 i += 1
 
             i = 1
-            while testWebpage(content+"/s"+str(i)) == 0:
-                ydl_extractor(content+"/s"+str(i))
+            while testWebpage(url+"/s"+str(i)) == 0:
+                ydl_extractor(url+"/s"+str(i))
                 i += 1
 
             return 0
 
-    if ("sxyprn" in content) : return host_sxyprn(content)
-    if ("porngo" in content) : return host_porngo(content)
-    if ("xvideos" in content) : return host_xvideos(content)
+    if ("sxyprn" in url) : return host_sxyprn(url, title, stringReferer)
+    if ("porngo" in url) : return host_porngo(url, title, stringReferer)
+    if ("xvideos" in url) : return host_xvideos(url, title, stringReferer)
 
-    if ("udemy" in content) : return host_udemy(content)
-    if ("crunchyroll" in content) : return host_crunchyroll(content)
-    if ("anime-on-demand" in content) : return host_animeondemand(content)
-    if ("vimeo" in content) : return host_vimeo(content)
-    if ("cloudfront" in content) : return host_cloudfront(content)
+    if ("udemy" in url) : return host_udemy(url, title, stringReferer)
+    if ("crunchyroll" in url) : return host_crunchyroll(url, title, stringReferer)
+    if ("anime-on-demand" in url) : return host_animeondemand(url, title, stringReferer)
+    if ("vimeo" in url) : return host_vimeo(url, title, stringReferer)
+    if ("cloudfront" in url) : return host_cloudfront(url, title, stringReferer)
 
     return host_default(content)
 
@@ -866,41 +880,40 @@ def host_default(content):
             filename = getTitleFormated(filename)
 
             output = '-f best --no-playlist -o "{title}.%(ext)s"'.format(title = filename)
-            return ydl_download(content, parameters, output)
+            return ydl_download(content, parameters, output, stringReferer)
         except:
             output = '-f best --no-playlist -o "%(title)s.%(ext)s"'
-            return ydl_download(content, parameters, output)
+            return ydl_download(content, parameters, output, stringReferer)
 
     else:
         output = '-i -f best -o "%(extractor)s--%(playlist_uploader)s_%(playlist_title)s/%(playlist_index)s_%(title)s.%(ext)s"'
-        return ydl_download(content, parameters, output)
+        return ydl_download(content, parameters, output, stringReferer)
 
 
 # ----- # ----- # fruithosted, oloadcdn, verystream, vidoza, vivo,
-def host_mostly(content):
-    if ";" in content:
-        title = content.split(";",1)[1]
-        content = content.split(";",1)[0]
-    else:
+def host_mostly(content, title, stringReferer):
+    if title == "":
         title = str(input("\nPlease enter the Title:\n"))
 
     title = getTitleFormated(title)
     output = '-f best -o "{title}.%(ext)s"'.format(title = title)
     
-    return ydl_download(content, parameters, output)
+    return ydl_download(content, parameters, output, stringReferer)
 
 
 # ----- # ----- #
-def host_hanime(content):
-    title = content.rsplit('?',1)[0].rsplit('/',1)[1]
+def host_hanime(content, title, stringReferer):
+    if title == "":
+        title = content.rsplit('?',1)[0].rsplit('/',1)[1]
+    
     title = getTitleFormated(title)
     output = '-f best -o "{title}.%(ext)s"'.format(title = title)
     
-    return ydl_download(content, parameters, output)
+    return ydl_download(content, parameters, output, stringReferer)
 
 
 # ----- # ----- #
-def host_hahomoe(content):
+def host_hahomoe(content, title, stringReferer):
     url = content
     webpage = ""
 
@@ -913,12 +926,13 @@ def host_hahomoe(content):
     if m:
         url = m.group(1)
 
-    titleRegex = re.compile('<title>(.*?)</title>')
-    m = titleRegex.search(str(webpage))
-    if m:
-        title = m.group(1).rsplit(' ',4)[0]
-    else:
-        title = ""
+    if title == "":
+        titleRegex = re.compile('<title>(.*?)</title>')
+        m = titleRegex.search(str(webpage))
+        if m:
+            title = m.group(1).rsplit(' ',4)[0]
+        else:
+            title = ""
 
     title = getTitleFormated(title)
     output = '-f best -o "{title}.mp4"'.format(title = title)
@@ -927,7 +941,7 @@ def host_hahomoe(content):
 
 
 # ----- # ----- #
-def host_sxyprn(content):
+def host_sxyprn(content, title, stringReferer):
     url = content
     webpage = ""
 
@@ -935,41 +949,46 @@ def host_sxyprn(content):
     with urllib.request.urlopen(req) as response:
         webpage = response.read()
 
-    title = str(webpage).split('<title>')[1].split('</title>')[0]
-    title = title.rsplit('-', 1)[0]
-    title = title.casefold().replace(" ", "-").replace(".","").rsplit('-', 1)[0]
+    if title == "":
+        title = str(webpage).split('<title>')[1].split('</title>')[0]
+        title = title.rsplit('-', 1)[0]
+        title = title.casefold().replace(" ", "-").replace(".","").rsplit('-', 1)[0]
 
-    if "#" in title:
-        title = title.split('-#',1)[0]
+        if "#" in title:
+            title = title.split('-#',1)[0]
 
     title = getTitleFormated(title)
     output = '-f best -o "{title}.%(ext)s"'.format(title = title)
     
-    return ydl_download(content, parameters, output)
+    return ydl_download(content, parameters, output, stringReferer)
 
 
 # ----- # ----- #
-def host_xvideos(content):
-    title = content.rsplit("/",1)[1]
+def host_xvideos(content, title, stringReferer):
+    if title == "":
+        title = content.rsplit("/",1)[1]
+    
     title = getTitleFormated(title)
     output = '-f best -o "{title}.mp4"'.format(title = title)
     
-    return ydl_download(content, parameters, output)
+    return ydl_download(content, parameters, output, stringReferer)
 
 
 # ----- # ----- #
-def host_porngo(content):
-    title = content.rsplit('/',1)[0].rsplit('/',1)[1]
+def host_porngo(content, title, stringReferer):
+    if title == "":
+        title = content.rsplit('/',1)[0].rsplit('/',1)[1]
+    
     title = getTitleFormated(title)
     output = '-f best -o "{title}.%(ext)s"'.format(title = title)
     
-    return ydl_download(content, parameters, output)
+    return ydl_download(content, parameters, output, stringReferer)
 
 
 # - - - - - # - - - - - # - - - - - # - - - - - # Anime
 
 # ----- # ----- #
-def host_animeondemand(content):
+def host_animeondemand(content, title, stringReferer):
     parameter = getUserCredentials("animeondemand")
 
     if "www." not in content:
@@ -982,7 +1001,7 @@ def host_animeondemand(content):
 
 
 # ----- # ----- #
-def host_crunchyroll(content):
+def host_crunchyroll(content, title, stringReferer):
     parameter = getUserCredentials("crunchyroll")
     output = str(getLanguage("crunchyroll"))
 
@@ -998,7 +1017,7 @@ def host_crunchyroll(content):
 # - - - - - # - - - - - # - - - - - # - - - - - # platformen
 
 # ----- # ----- #
-def host_udemy(content):
+def host_udemy(content, title, stringReferer):
     for p in data['udemy']:
         parameter = "-u '" + p['username'] + "' -p '" + p['password'] + "' " + parameters
 
@@ -1014,35 +1033,29 @@ def host_udemy(content):
 
 
 # ----- # ----- #
-def host_vimeo(content):
-    if ";" in content:
-        swap = content.split(";")
-        content = swap[0]
-        title = swap[1]
-        reference = swap[2]
-    else:
-        reference = str(input("\nPlease enter the reference URL:\n"))
+def host_vimeo(content, title, stringReferer):
+    if title == "":
         title = str(input("\nPlease enter the Title:\n"))
+    
+    if stringReferer == "":    
+        stringReferer = str(input("\nPlease enter the reference URL:\n"))
 
     content = content.split("?")[0]
     title = getTitleFormated(title)
-    output = '--referer "{reference}" -f best -o "{title}.%(ext)s"'.format(reference = reference, title = title)
+    output = '-f best -o "{title}.%(ext)s"'.format(title = title)
     
-    return ydl_download(content, parameters, output)
+    return ydl_download(content, parameters, output, stringReferer)
 
 
 # ----- # ----- #
-def host_cloudfront(content):
-    if ";" in content:
-        title = content.split(";",1)[1]
-        content = content.split(";",1)[0]
-    else:
+def host_cloudfront(content, title, stringReferer):
+    if title == "":
         title = str(input("\nPlease enter the Title:\n"))
 
     title = getTitleFormated(title)
     output = '-f best -o "{title}.mp4"'.format(title = title)
     
-    return ydl_download(content, parameters, output)
+    return ydl_download(content, parameters, output, stringReferer)
 
 
 # - - - - - # - - - - - # - - - - - # - - - - - # main
