@@ -45,7 +45,7 @@ def getTitleFormated(title):
 
 # ----- # ----- # format files
 def formatingFilename(text):
-    reg = re.compile(r"[^\w\d\s\-\_\/\.]")
+    reg = re.compile(r"[^\w\d\s\-\_\/\.+]")
     reg3 = re.compile(r"-{3,}")
 
     extensionsList = [
@@ -67,7 +67,7 @@ def formatingFilename(text):
     else:
         swap = swap.replace("/","").replace(".","")
 
-    swap = swap.replace(" ", "-").replace("_","-")
+    swap = swap.replace(" ", "-").replace("_","-").replace("+","-")
 
     swap = re.sub(reg3, "§", swap)
     swap = swap.replace("--", "-")
@@ -83,7 +83,7 @@ def formatingDirectories(text):
 
     swap = text.casefold()
     swap = re.sub(reg, '', swap)
-    swap = swap.replace(" ", "-").replace("_","-")
+    swap = swap.replace(" ", "-").replace("_","-").replace("+","-")
 
     swap = re.sub(reg3, "§", swap)
     swap = swap.replace("--", "-")
