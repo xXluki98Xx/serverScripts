@@ -291,6 +291,8 @@ def renameEpisode(season, episode, title, seasonOffset):
 # ----- # ----- #
 def func_rename(filePath, platform, offset, cut):
     if os.path.isfile(filePath):
+        if filePath.startswith('.'):
+            continue
         old = os.path.join(os.getcwd(),filePath)
         new = os.path.join(os.getcwd(),formatingFilename(filePath))
         os.rename(old, new)
