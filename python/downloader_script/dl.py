@@ -857,14 +857,15 @@ def ydl_extractor(content):
     if ("vimeo" in url) : return host_vimeo(url, title, stringReferer)
     if ("cloudfront" in url) : return host_cloudfront(url, title, stringReferer)
 
-    return host_default(content)
+    return host_default(url, title, stringReferer)
 
 
 # - - - - - # - - - - - # - - - - - # - - - - - # media hoster
 
 # ----- # ----- # hosts
-def host_default(content):
+def host_default(content, title, stringReferer):
     if not booleanPlaylist:
+
         ydl_opts = {
             'outtmpl': '%(title)s',
             'restrictfilenames': True,
@@ -872,17 +873,24 @@ def host_default(content):
         }
 
         try:
-            with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-                info = ydl.extract_info(content, download = False)
-                filename = ydl.prepare_filename(info)
+            if title == "":
+                with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+                    info = ydl.extract_info(content, download = False)
+                    filename = ydl.prepare_filename(info)
 
-                if booleanVerbose:
-                    print("\nextracted filename: \n" + filename)
+                    if booleanVerbose:
+                        print("\nextracted filename: \n" + filename)
 
-            filename = getTitleFormated(filename)
+                filename = getTitleFormated(filename)
 
-            output = '-f best --no-playlist -o "{title}.%(ext)s"'.format(title = filename)
-            return ydl_download(content, parameters, output, stringReferer)
+                output = '-f best --no-playlist -o "{title}.%(ext)s"'.format(title = filename)
+                return ydl_download(content, parameters, output, stringReferer)
+            else:
+                filename = getTitleFormated(title)
+
+                output = '-f best --no-playlist -o "{title}.%(ext)s"'.format(title = filename)
+                return ydl_download(content, parameters, output, stringReferer)
+
         except:
             output = '-f best --no-playlist -o "%(title)s.%(ext)s"'
             return ydl_download(content, parameters, output, stringReferer)
