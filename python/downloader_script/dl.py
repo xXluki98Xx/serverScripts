@@ -21,6 +21,94 @@ from exitstatus import ExitStatus
 
 # - - - - - # - - - - - # - - - - - # - - - - - # help functions
 
+# ----- # ----- #
+def func_rename(filePath, platform, offset, cut):
+    if os.path.isfile(filePath):
+        if filePath.startswith('.'):
+            return
+        old = os.path.join(os.getcwd(),filePath)
+        new = os.path.join(os.getcwd(),func_formatingFilename(filePath))
+        os.rename(old, new)
+    else:
+        try:
+            path, dirs, files = next(os.walk(filePath))
+        except:
+            print("\ncould the path be wrong?\n")
+
+        for directory in dirs:
+            func_rename(os.path.join(filePath, directory), platform, offset, cut)
+
+        for f in os.listdir(path):
+            old = os.path.join(path,f)
+            f = f[offset:]
+            # f = f[:cut]
+
+            seasonOffset = 0
+            if booleanSingle:
+                seasonOffset = 1
+
+            if platform == "crunchyroll":
+                fSwap = func_formatingFilename(f).split("-", 4)
+                f = renameEpisode(fSwap[1], fSwap[3], fSwap[4], 1)
+
+            new = os.path.join(path,func_formatingFilename(f))
+            os.rename(old, new)
+
+        try:
+            os.rename(filePath, func_formatingDirectories(filePath))
+        except:
+            pass
+
+
+# ----- # ----- #
+def func_replace(filePath, old, new):
+    try:
+        path, dirs, files = next(os.walk(filePath))
+    except:
+        print("\ncould the path be wrong?\n")
+
+    for directory in dirs:
+        func_replace(os.path.join(filePath, directory), old, new)
+
+    for f in os.listdir(path):
+        oldFile = os.path.join(path,f)
+        f = f.replace(old, new)
+        newFile = os.path.join(path,func_formatingFilename(f))
+        os.rename(oldFile, newFile)
+
+    try:
+        os.rename(filePath, func_formatingDirectories(filePath))
+    except:
+        pass
+
+
+# ----- # ----- #
+def func_convertFilesFfmpeg(fileName, newFormat, subPath):
+    newFile = fileName.rsplit(".", 1)[0]
+    output = ""
+
+    if subPath:
+        if "/" in newFile:
+            newFile = newFile.rsplit("/", 1)
+            path = newFile[0] + "/" + subPath
+
+            if not os.path.exists(path):
+                os.makedirs(path)
+
+            output = path + "/" + newFile[1]
+        else:
+            if not os.path.exists(subPath):
+                os.makedirs(subPath)
+
+            output = subPath + "/" + newFile
+    else:
+        output = newFile
+
+    ffmpeg.input(fileName).output(output + "." + newFormat).run()
+
+
+# - - - - - # - - - - - # - - - - - # - - - - - # sub functions
+
 # ----- # ----- # title
 def getTitleFormated(title):
     newTitle = ""
@@ -32,7 +120,7 @@ def getTitleFormated(title):
     else:
         newTitle = title
 
-    newTitle = formatingFilename(newTitle)
+    newTitle = func_formatingFilename(newTitle)
 
     while newTitle.endswith('-'):
         newTitle = newTitle[:-1]
@@ -44,7 +132,7 @@ def getTitleFormated(title):
 
 
 # ----- # ----- # format files
-def formatingFilename(text):
+def func_formatingFilename(text):
     reg = re.compile(r"[^\w\d\s\-\_\/\.+]")
     reg3 = re.compile(r"-{3,}")
 
@@ -77,7 +165,7 @@ def formatingFilename(text):
 
 
 # ----- # ----- # format folder
-def formatingDirectories(text):
+def func_formatingDirectories(text):
     reg = re.compile(r"[^\w\d\s\-\_\/\.]")
     reg3 = re.compile(r"-{3,}")
 
@@ -208,13 +296,20 @@ def testWebpage(url):
         conn = urllib.request.urlopen(req)
     except urllib.error.HTTPError as e:
         if e.code == 403:
+
+            if booleanVerbose:
+                print("HTTP Error: " + str(e.reason))
+
             return 0
 
-        print('\nHTTPError: {}'.format(e.code))
+        if booleanVerbose:
+            print("HTTP Error: " + str(e.reason))
+
         return e.code
     except urllib.error.URLError as e:
-        print('\nURLError: {}'.format(e.reason))
-        return e.code
+        if booleanVerbose:
+            print("URL Error: " + str(e.reason))
+        return 0
     else:
         return 0
 
@@ -288,92 +383,6 @@ def renameEpisode(season, episode, title, seasonOffset):
     return f
 
 
-# ----- # ----- #
-def func_rename(filePath, platform, offset, cut):
-    if os.path.isfile(filePath):
-        if filePath.startswith('.'):
-            return
-        old = os.path.join(os.getcwd(),filePath)
-        new = os.path.join(os.getcwd(),formatingFilename(filePath))
-        os.rename(old, new)
-    else:
-        try:
-            path, dirs, files = next(os.walk(filePath))
-        except:
-            print("\ncould the path be wrong?\n")
-
-        for directory in dirs:
-            func_rename(os.path.join(filePath, directory), platform, offset, cut)
-
-        for f in os.listdir(path):
-            old = os.path.join(path,f)
-            f = f[offset:]
-            # f = f[:cut]
-
-            seasonOffset = 0
-            if booleanSingle:
-                seasonOffset = 1
-
-            if platform == "crunchyroll":
-                fSwap = formatingFilename(f).split("-", 4)
-                f = renameEpisode(fSwap[1], fSwap[3], fSwap[4], 1)
-
-            new = os.path.join(path,formatingFilename(f))
-            os.rename(old, new)
-
-        try:
-            os.rename(filePath, formatingDirectories(filePath))
-        except:
-            pass
-
-
-# ----- # ----- #
-def func_replace(filePath, old, new):
-    try:
-        path, dirs, files = next(os.walk(filePath))
-    except:
-        print("\ncould the path be wrong?\n")
-
-    for directory in dirs:
-        func_replace(os.path.join(filePath, directory), old, new)
-
-    for f in os.listdir(path):
-        oldFile = os.path.join(path,f)
-        f = f.replace(old, new)
-        newFile = os.path.join(path,formatingFilename(f))
-        os.rename(oldFile, newFile)
-
-    try:
-        os.rename(filePath, formatingDirectories(filePath))
-    except:
-        pass
-
-
-# ----- # ----- #
-def convertFilesFfmpeg(fileName, newFormat, subPath):
-    newFile = fileName.rsplit(".", 1)[0]
-    output = ""
-
-    if subPath:
-        if "/" in newFile:
-            newFile = newFile.rsplit("/", 1)
-            path = newFile[0] + "/" + subPath
-
-            if not os.path.exists(path):
-                os.makedirs(path)
-
-            output = path + "/" + newFile[1]
-        else:
-            if not os.path.exists(subPath):
-                os.makedirs(subPath)
-
-            output = subPath + "/" + newFile
-    else:
-        output = newFile
-
-    ffmpeg.input(fileName).output(output + "." + newFormat).run()
-
-
 # - - - - - # - - - - - # - - - - - # - - - - - # main functions
 
 # ----- # ----- # main
@@ -444,6 +453,7 @@ def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file, sub_lang, 
 
 # arguments
 @click.argument('rename', nargs=-1)
+
 def rename(rename, offset, cut, crunchyroll, single):
     platform = ""
 
@@ -481,10 +491,11 @@ def replace(replace, old, new):
 # arguments
 @click.argument("newformat", nargs=1)
 @click.argument("path", nargs=-1)
+
 def convertFiles(newformat, path, subpath, ffmpeg):
     if ffmpeg:
         for itemPath in path:
-            sPath = formatingDirectories(itemPath)
+            sPath = func_formatingDirectories(itemPath)
             func_rename(itemPath, "", 0, 0)
 
             try:
@@ -492,10 +503,10 @@ def convertFiles(newformat, path, subpath, ffmpeg):
 
                 for f in os.listdir(paths):
                     old = os.path.join(paths,f)
-                    convertFilesFfmpeg(old, newformat, subpath)
+                    func_convertFilesFfmpeg(old, newformat, subpath)
             except:
                 if os.path.isfile(os.path.join(os.getcwd(),sPath)):
-                    convertFilesFfmpeg(sPath, newformat, subpath)
+                    func_convertFilesFfmpeg(sPath, newformat, subpath)
 
 
 # - - - - - # - - - - - # - - - - - # - - - - - #
@@ -661,6 +672,7 @@ def wget_download(content):
 
                         if i == 3:
                             print("\nThe was the Command: \n%s" % wget)
+                            os.system("echo '{wget}' >> dl-error-wget.txt".format(wget = content))
                             return returned_value
 
                 else:
@@ -802,6 +814,7 @@ def ydl_download(content, parameters, output, stringReferer):
 
             if i == 3:
                 print("\nThe was the Command: \n%s" % ydl)
+                os.system("echo '{ydl}' >> dl-error-ydl.txt".format(ydl = content))
                 return returned_value
         else:
             return returned_value
