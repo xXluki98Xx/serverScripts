@@ -394,6 +394,7 @@ def renameEpisode(season, episode, title, seasonOffset):
 @click.option("-nr", "--no-remove", default=False, is_flag=True, help="remove Files at wget")
 @click.option("-up", "--update-packages", default=False, is_flag=True, help="updates packages listed in requirements.txt")
 @click.option("-v", "--verbose", default=False, is_flag=True, help="Using Verbose mode")
+@click.option("-sy", "--sync", default=False, is_flag=True, help="")
 
 # int
 @click.option("--retries", default=5, help="Enter an Number for Retries")
@@ -406,7 +407,7 @@ def renameEpisode(season, episode, title, seasonOffset):
 @click.option("-sl","--sub-lang", default="", help="Enter language Code (de / en)")
 @click.option("-dl","--dub-lang", default="", help="Enter language Code (de / en)")
 
-def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file, sub_lang, dub_lang, playlist, no_remove, update_packages, verbose):
+def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file, sub_lang, dub_lang, playlist, no_remove, update_packages, verbose, sync):
     global parameters
     global floatBandwidth
     global cookieFile
@@ -415,6 +416,7 @@ def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file, sub_lang, 
     global booleanPlaylist
     global booleanRemoveFiles
     global booleanVerbose
+    global booleanSync
 
     floatBandwidth = bandwidth
     cookieFile = cookie_file
@@ -423,6 +425,7 @@ def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file, sub_lang, 
     booleanPlaylist = playlist
     booleanRemoveFiles = no_remove
     booleanVerbose = verbose
+    booleanSync = sync
 
     getRootPath()
     loadConfig()
@@ -520,15 +523,12 @@ def convertFiles(newformat, path, subpath, ffmpeg):
 
 # switch
 @click.option("-sp", "--space", default=False, is_flag=True, help="check if old file are deletable")
-@click.option("-sy", "--sync", default=False, is_flag=True, help="")
 
 # arguments
 @click.argument('wget', nargs=-1)
-def wget(wget, space, sync):
+def wget(wget, space):
     global booleanSpace
-    global booleanSync
     booleanSpace = space
-    booleanSync = sync
 
     repeat = True
 
@@ -572,45 +572,42 @@ def wget_list(itemList):
     urlCopy = urlList.copy()
 
     if booleanSync:
-        random.shuffle(urlCopy)
+        random.shuffle(urlList)
 
     try:
-        for item in urlCopy:
-            if item != "" :
-                if item.startswith('#'):
-                    urlList.remove(item)
-                    continue
+        for item in urlList:
 
-                print("\ndownloading: " + item)
+            if item.startswith('#') or item == "":
+                urlCopy.remove(item)
+                continue
 
-                if booleanSync:
-                    wget_download(str(item))
-                else:
-                    if wget_download(str(item)) == 0:
-                        urlList.remove(item)
-                        print("\nremoved: " + str(item) + " | rest list " + str(urlList))
+            print("\ndownloading: " + item)
+
+            if booleanSync:
+                wget_download(str(item))
+                print("finished: " + str(item))
             else:
-                urlList.remove(item)
+                if wget_download(str(item)) == 0:
+                    urlCopy.remove(item)
+                    print("\nremoved: " + str(item) + " | rest list " + str(urlList))
 
     except KeyboardInterrupt:
-        if booleanSync:
-            print("\nInterupt by User\n")
-            exit()
-        else:
-            print("\nInterupt by User\n")
+        if not booleanSync:
             with safer.open(itemList, 'w') as f:
-                for url in urlList:
+                for url in urlCopy:
                     f.write("%s\n" % url)
-            exit()
+        print("\nInterupt by User\n")
+        exit()
 
     except:
-        print("\nerror: " + str(sys.exc_info()))
+        print("\nerror at wget list: " + str(sys.exc_info()))
 
     finally:
         # will always be executed last, with or without exception
-        with safer.open(itemList, 'w') as f:
-            for url in urlList:
-                f.write("%s\n" % url)
+        if not booleanSync:
+            with safer.open(itemList, 'w') as f:
+                for url in urlCopy:
+                    f.write("%s\n" % url)
 
         elapsedTime()
         sys.exit(ExitStatus.success)
@@ -694,7 +691,7 @@ def wget_download(content):
         exit()
 
     except:
-        print("error: " + str(sys.exc_info()))
+        print("error at wget download: " + str(sys.exc_info()))
 
 
 # - - - - - # - - - - - # - - - - - # - - - - - #
@@ -754,34 +751,39 @@ def ydl_list(itemList):
         print("\nydl download list: \n" + str(urlCopy))
 
     try:
-        for item in urlCopy:
-            if item != "" :
-                if item.startswith('#'):
-                    continue
+        for item in urlList:
 
-                print("\ncurrent Download: " + item)
+            if item.startswith('#') or item == "":
+                urlCopy.remove(item)
+                continue
 
-                if ydl_extractor(str(item)) == 0:
-                    urlList.remove(item)
-                    print("removed: " + str(item) + " | rest list " + str(urlList))
+            print("\ncurrent Download: " + item)
+
+            if booleanSync:
+                ydl_extractor(str(item))
+                print("finished: " + str(item))
             else:
-                urlList.remove(item)
+                if ydl_extractor(str(item)) == 0:
+                    urlCopy.remove(item)
+                    print("removed: " + str(item) + " | rest list " + str(urlList))
 
     except KeyboardInterrupt:
         print("\nInterupt by User\n")
-        with safer.open(itemList, 'w') as f:
-            for url in urlList:
-                f.write("%s\n" % url)
+        if not booleanSync:
+            with safer.open(itemList, 'w') as f:
+                for url in urlCopy:
+                    f.write("%s\n" % url)
         exit()
 
     except:
-        print("\nerror: \n" + str(sys.exc_info()))
+        print("\nerror at ydl list: \n" + str(sys.exc_info()))
 
     finally:
         # will always be executed last, with or without exception
-        with safer.open(itemList, 'w') as f:
-            for url in urlList:
-                f.write("%s\n" % url)
+        if not booleanSync:
+            with safer.open(itemList, 'w') as f:
+                for url in urlCopy:
+                    f.write("%s\n" % url)
         sys.exit(ExitStatus.success)
         elapsedTime()
 
