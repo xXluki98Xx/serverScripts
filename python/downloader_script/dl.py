@@ -417,6 +417,7 @@ def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file, sub_lang, 
     global booleanRemoveFiles
     global booleanVerbose
     global booleanSync
+    global booleanSingle
 
     floatBandwidth = bandwidth
     cookieFile = cookie_file
@@ -426,6 +427,8 @@ def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file, sub_lang, 
     booleanRemoveFiles = no_remove
     booleanVerbose = verbose
     booleanSync = sync
+
+    booleanSingle = False
 
     getRootPath()
     loadConfig()
@@ -448,9 +451,11 @@ def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file, sub_lang, 
 # ----- # ----- # rename command
 @main.command(help="Path for rename, not file")
 
-# switch
+# string
 @click.option("-os", "--offset", default=0, help="String Offset")
 @click.option("-c", "--cut", default=0, help="Cut String")
+
+# switch
 @click.option("-cr", "--crunchyroll", default=False, is_flag=True, help="syntax Crunchyroll")
 @click.option("-s", "--single", default=False, is_flag=True, help="series is only one Season")
 
@@ -460,7 +465,6 @@ def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file, sub_lang, 
 def rename(rename, offset, cut, crunchyroll, single):
     platform = ""
 
-    global booleanSingle
     booleanSingle = single
 
     if crunchyroll:
@@ -473,7 +477,7 @@ def rename(rename, offset, cut, crunchyroll, single):
 # ----- # ----- # replace command
 @main.command(help="Path, old String, new String")
 
-# switch
+# string
 @click.option("-o", "--old", default="", help="old String")
 @click.option("-n", "--new", default="", help="new String")
 
@@ -489,6 +493,8 @@ def replace(replace, old, new):
 
 # switch
 @click.option("-f", "--ffmpeg", default=False, is_flag=True, help="ffmpeg")
+
+# string
 @click.option("-sp", "--subpath", default="", help="Path which will contain the new Files")
 
 # arguments
@@ -620,17 +626,25 @@ def wget_download(content):
             swap = content.split(";")
             content = swap[0]
             directory = swap[1]
+            title = swap[2]
         else:
             directory = ""
+            title = ""
 
         path = os.path.join(os.getcwd(),directory)
 
-        wget = 'wget -P {dir} -c -w 5 --random-wait --limit-rate={bw} -e robots=off "{url}"'.format(dir = path, url = content, bw = floatBandwidth)
+        wget = 'wget -c -w 5 --random-wait --limit-rate={bw} -e robots=off "{url}"'.format(url = content, bw = floatBandwidth)
 
-        # --no-http-keep-alive
+        if directory != "":
+            wget += '  -P {dir}'.format(dir = path)
+
+        if title != "":
+            wget += ' -O {title}'.format(title = getTitleFormated(title))
+
+        # --no-http-keep-alive --no-clobber
 
         if booleanSync:
-            wget = wget + ' -r --no-cache -np -nd -nH -A iso,xz'
+            wget = wget + ' -r -N -np -nd -nH -A iso,xz'
 
         # file count
         path, dirs, files = next(os.walk(path))
