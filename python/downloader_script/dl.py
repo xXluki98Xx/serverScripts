@@ -595,7 +595,7 @@ def wget_list(itemList):
             else:
                 if wget_download(str(item)) == 0:
                     urlCopy.remove(item)
-                    print("\nremoved: " + str(item) + " | rest list " + str(urlList))
+                    print("\nremoved: " + str(item) + " | rest list " + str(urlCopy))
 
     except KeyboardInterrupt:
         if not booleanSync:
@@ -779,7 +779,7 @@ def ydl_list(itemList):
             else:
                 if ydl_extractor(str(item)) == 0:
                     urlCopy.remove(item)
-                    print("removed: " + str(item) + " | rest list " + str(urlList))
+                    print("removed: " + str(item) + " | rest list " + str(urlCopy))
 
     except KeyboardInterrupt:
         print("\nInterupt by User\n")
