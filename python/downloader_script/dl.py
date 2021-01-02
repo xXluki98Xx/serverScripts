@@ -531,7 +531,7 @@ def convertFiles(newformat, path, subpath, ffmpeg):
 @click.option("-sp", "--space", default=False, is_flag=True, help="check if old file are deletable")
 
 # string
-@click.option("-f", "--accept", default="", help="Comma Seprated List of Accepted extensions, like iso,xz")
+@click.option("-a", "--accept", default="", help="Comma Seprated List of Accepted extensions, like iso,xz")
 @click.option("-r", "--reject", default="", help="Comma Seprated List of Rejected extensions, like iso,xz")
 
 # arguments
@@ -640,7 +640,7 @@ def wget_download(content, accept, reject):
         wget = 'wget -c -w 5 --random-wait --limit-rate={bw} -e robots=off "{url}"'.format(url = content, bw = floatBandwidth)
 
         if directory != "":
-            wget += '  -P {dir}'.format(dir = path)
+            wget += ' -P {dir}'.format(dir = path)
 
         if title != "":
             wget += ' -O {title}'.format(title = getTitleFormated(title))
@@ -672,6 +672,9 @@ def wget_download(content, accept, reject):
             testSize = int(fileSize)
         except:
             testSize = dirSize
+
+        if booleanVerbose:
+            print("wget command:\n" + wget)
 
         if (int(freeStorage) >= int(testSize)):
 
