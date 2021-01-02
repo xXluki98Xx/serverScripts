@@ -637,7 +637,7 @@ def wget_download(content, accept, reject):
 
         path = os.path.join(os.getcwd(),directory)
 
-        wget = 'wget -c -w 5 --random-wait --limit-rate={bw} -e robots=off "{url}"'.format(url = content, bw = floatBandwidth)
+        wget = 'wget -c -w 5 --random-wait --limit-rate={bw} -e robots=off'.format(bw = floatBandwidth)
 
         if directory != "":
             wget += ' -P {dir}'.format(dir = path)
@@ -655,6 +655,8 @@ def wget_download(content, accept, reject):
 
         if booleanSync:
             wget = wget + ' -r -N -np -nd -nH'
+
+        wget += ' "{url}"'.format(url = content)
 
         # file count
         path, dirs, files = next(os.walk(path))
