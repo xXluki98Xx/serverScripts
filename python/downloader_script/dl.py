@@ -531,11 +531,12 @@ def convertFiles(newformat, path, subpath, ffmpeg):
 @click.option("-sp", "--space", default=False, is_flag=True, help="check if old file are deletable")
 
 # string
-@click.option("-f", "--formats", default="", help="Comma Seprated List of Accepted extensions, like iso,xz")
+@click.option("-f", "--accept", default="", help="Comma Seprated List of Accepted extensions, like iso,xz")
+@click.option("-r", "--reject", default="", help="Comma Seprated List of Rejected extensions, like iso,xz")
 
 # arguments
 @click.argument('wget', nargs=-1)
-def wget(wget, space, formats):
+def wget(wget, space, accept, reject):
     global booleanSpace
     booleanSpace = space
 
@@ -545,9 +546,9 @@ def wget(wget, space, formats):
         if wget != "":
             for item in wget:
                 if os.path.isfile(item):
-                    wget_list(item, formats)
+                    wget_list(item, accept, reject)
                 else:
-                    wget_download(item,formats)
+                    wget_download(item, accept, reject)
 
             wget = ""
             elapsedTime()
@@ -555,7 +556,7 @@ def wget(wget, space, formats):
         else:
             try:
                 url = input("\nPlease enter the Url:\n")
-                wget_download(url)
+                wget_download(url, accept, reject)
 
             except KeyboardInterrupt:
                 pass
@@ -573,7 +574,7 @@ def wget(wget, space, formats):
 
 
 # ----- # ----- #
-def wget_list(itemList, formats):
+def wget_list(itemList, accept, reject):
     with safer.open(itemList) as f:
         urlList = f.readlines()
         urlList = [x.strip() for x in urlList]
@@ -593,10 +594,10 @@ def wget_list(itemList, formats):
             print("\ndownloading: " + item)
 
             if booleanSync:
-                wget_download(str(item), formats)
+                wget_download(str(item), accept, reject)
                 print("finished: " + str(item))
             else:
-                if wget_download(str(item)) == 0:
+                if wget_download(str(item), accept, reject) == 0:
                     urlCopy.remove(item)
                     print("\nremoved: " + str(item) + " | rest list " + str(urlCopy))
 
@@ -623,7 +624,7 @@ def wget_list(itemList, formats):
 
 
 # ----- # ----- #
-def wget_download(content, formats):
+def wget_download(content, accept, reject):
     try:
         if ";" in content:
             swap = content.split(";")
@@ -644,8 +645,11 @@ def wget_download(content, formats):
         if title != "":
             wget += ' -O {title}'.format(title = getTitleFormated(title))
 
-        if formats != "":
-            wget += ' -A {extention}'.format(extention = formats)
+        if accept != "":
+            wget += ' --accept {extention}'.format(extention = accept)
+
+        if reject != "":
+            wget += ' --reject {extention}'.format(extention = reject)
 
         # --no-http-keep-alive --no-clobber
 
