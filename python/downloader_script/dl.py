@@ -530,9 +530,12 @@ def convertFiles(newformat, path, subpath, ffmpeg):
 # switch
 @click.option("-sp", "--space", default=False, is_flag=True, help="check if old file are deletable")
 
+# string
+@click.option("-f", "--formats", default="", help="Comma Seprated List of Accepted extensions, like iso,xz")
+
 # arguments
 @click.argument('wget', nargs=-1)
-def wget(wget, space):
+def wget(wget, space, formats):
     global booleanSpace
     booleanSpace = space
 
@@ -542,9 +545,9 @@ def wget(wget, space):
         if wget != "":
             for item in wget:
                 if os.path.isfile(item):
-                    wget_list(item)
+                    wget_list(item, formats)
                 else:
-                    wget_download(item)
+                    wget_download(item,formats)
 
             wget = ""
             elapsedTime()
@@ -570,7 +573,7 @@ def wget(wget, space):
 
 
 # ----- # ----- #
-def wget_list(itemList):
+def wget_list(itemList, formats):
     with safer.open(itemList) as f:
         urlList = f.readlines()
         urlList = [x.strip() for x in urlList]
@@ -590,7 +593,7 @@ def wget_list(itemList):
             print("\ndownloading: " + item)
 
             if booleanSync:
-                wget_download(str(item))
+                wget_download(str(item), formats)
                 print("finished: " + str(item))
             else:
                 if wget_download(str(item)) == 0:
@@ -620,7 +623,7 @@ def wget_list(itemList):
 
 
 # ----- # ----- #
-def wget_download(content):
+def wget_download(content, formats):
     try:
         if ";" in content:
             swap = content.split(";")
@@ -641,10 +644,13 @@ def wget_download(content):
         if title != "":
             wget += ' -O {title}'.format(title = getTitleFormated(title))
 
+        if formats != "":
+            wget += ' -A {extention}'.format(extention = formats)
+
         # --no-http-keep-alive --no-clobber
 
         if booleanSync:
-            wget = wget + ' -r -N -np -nd -nH -A iso,xz'
+            wget = wget + ' -r -N -np -nd -nH'
 
         # file count
         path, dirs, files = next(os.walk(path))
