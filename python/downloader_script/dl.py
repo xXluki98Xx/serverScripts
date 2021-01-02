@@ -133,7 +133,7 @@ def getTitleFormated(title):
 
 # ----- # ----- # format files
 def func_formatingFilename(text):
-    reg = re.compile(r"[^\w\d\s\-\_\/\.+]")
+    reg = re.compile(r"[^\w\d\s\-\_\/\.+|]")
     reg3 = re.compile(r"-{3,}")
 
     extensionsList = [
@@ -155,7 +155,7 @@ def func_formatingFilename(text):
     else:
         swap = swap.replace("/","").replace(".","")
 
-    swap = swap.replace(" ", "-").replace("_","-").replace("+","-")
+    swap = swap.replace(" ", "-").replace("_","-").replace("+","-").replace("|","-")
 
     swap = re.sub(reg3, "§", swap)
     swap = swap.replace("--", "-")
@@ -598,7 +598,7 @@ def wget_list(itemList, formats):
             else:
                 if wget_download(str(item)) == 0:
                     urlCopy.remove(item)
-                    print("\nremoved: " + str(item) + " | rest list " + str(urlList))
+                    print("\nremoved: " + str(item) + " | rest list " + str(urlCopy))
 
     except KeyboardInterrupt:
         if not booleanSync:
@@ -785,7 +785,7 @@ def ydl_list(itemList):
             else:
                 if ydl_extractor(str(item)) == 0:
                     urlCopy.remove(item)
-                    print("removed: " + str(item) + " | rest list " + str(urlList))
+                    print("removed: " + str(item) + " | rest list " + str(urlCopy))
 
     except KeyboardInterrupt:
         print("\nInterupt by User\n")
