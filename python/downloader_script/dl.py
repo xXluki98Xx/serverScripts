@@ -567,10 +567,13 @@ def convertFiles(newformat, path, subpath, ffmpeg):
 @click.option("-d", "--dir", default="", help="Path which will contain the new Files")
 @click.option("-f", "--file", default="", help="Path which will contain the new Files")
 
+# int
+@click.option("-cs", "--chunck-size", default=10, help="Enter an Number for Chunksize")
+
 # arguments
 @click.argument("url", nargs=1)
 
-def divideAndConquer(url, file, dir):
+def divideAndConquer(url, file, dir, chunck_size):
     if not os.path.isfile(file):
         getLinkList(url, file)
 
@@ -580,16 +583,15 @@ def divideAndConquer(url, file, dir):
 
     urlCopy = urlList.copy()
 
-    chunkedList = list(chunks(urlCopy, 20))
-
-    print("chunkedList: " + str(chunkedList[0]))
+    chunkedList = list(chunks(urlCopy, chunck_size))
 
     for itemList in chunkedList:
 
         random.shuffle(itemList)
 
         try:
-            print("\ndownloading: " + str(itemList))
+            if booleanVerbose:
+                print("\ndownloading: " + str(itemList))
 
             # if dl == 'wget':
             #     if download_wget2(str(item), dir) == 0:
