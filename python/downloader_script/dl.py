@@ -383,6 +383,51 @@ def renameEpisode(season, episode, title, seasonOffset):
     return f
 
 
+def getLinkList(link, listFile):
+    itemList = 'list_Links'
+
+    print("beginning link extraction")
+    page = requests.get(link)
+    if page.status_code == 200:
+        print("got page")
+        content = page.content
+
+        DOMdocument = BeautifulSoup(content, 'html.parser')
+
+        listLinks = []
+
+        for a in DOMdocument.find_all('a'):
+            listLinks.append(a.string)
+
+        print("writting links to file")
+        with safer.open(listFile, 'w') as f:
+            for url in listLinks:
+                if 'pdf' in url:
+                    f.write(link+"%s\n" % url)
+        print("finished writing")
+
+
+def split_list(alist, wanted_parts=1):
+    length = len(alist)
+    return [ alist[i*length // wanted_parts: (i+1)*length // wanted_parts] 
+        for i in range(wanted_parts) ]
+
+
+def chunks(lst, n):
+    """Yield successive n-sized chunks from lst."""
+    for i in range(0, len(lst), n):
+        yield lst[i:i + n]
+
+
+def getEchoList(stringList):
+    listString = ''
+    for item in stringList:
+        if item.startswith('#') or item == "":
+            continue
+        listString +=("%s\n" % item)
+    return listString
+
+
 # - - - - - # - - - - - # - - - - - # - - - - - # main functions
 
 # ----- # ----- # main
@@ -418,6 +463,7 @@ def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file, sub_lang, 
     global booleanVerbose
     global booleanSync
     global booleanSingle
+    global booleanAxel
 
     floatBandwidth = bandwidth
     cookieFile = cookie_file
@@ -427,6 +473,7 @@ def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file, sub_lang, 
     booleanRemoveFiles = no_remove
     booleanVerbose = verbose
     booleanSync = sync
+    booleanAxel = axel
 
     booleanSingle = False
 
@@ -437,15 +484,6 @@ def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file, sub_lang, 
         update()
 
     parameters = "--retries {retries} --min-sleep-interval {min_sleep} --max-sleep-interval {max_sleep} -c".format(retries = retries, min_sleep = min_sleep, max_sleep = max_sleep)
-
-    if bandwidth != "0":
-        parameters = parameters + " --limit-rate {}".format(bandwidth)
-
-    if axel:
-        parameters = parameters + " --external-downloader axel"
-
-        if bandwidth != "0":
-            parameters = parameters + " --external-downloader-args '-s {}'".format(human2bytes(bandwidth))
 
 
 # ----- # ----- # rename command
@@ -518,6 +556,68 @@ def convertFiles(newformat, path, subpath, ffmpeg):
                     func_convertFilesFfmpeg(sPath, newformat, subpath)
 
 
+# ----- # ----- # divideAndConquer command
+@main.command(help="")
+
+# switch
+# @click.option("-f", "--ffmpeg", default=False, is_flag=True, help="ffmpeg")
+
+# string
+@click.option("-d", "--dir", default="", help="Path which will contain the new Files")
+@click.option("-f", "--file", default="", help="Path which will contain the new Files")
+
+# arguments
+@click.argument("url", nargs=1)
+
+def divideAndConquer(url, file, dir):
+    if not os.path.isfile(file):
+        getLinkList(url, file)
+
+    with safer.open(file) as f:
+        urlList = f.readlines()
+        urlList = [x.strip() for x in urlList]
+
+    urlCopy = urlList.copy()
+
+    chunkedList = list(chunks(urlCopy, 20))
+
+    print("chunkedList: " + str(chunkedList[0]))
+
+    for itemList in chunkedList:
+
+        random.shuffle(itemList)
+
+        try:
+            print("\ndownloading: " + str(itemList))
+
+            # if dl == 'wget':
+            #     if download_wget2(str(item), dir) == 0:
+            #         urlCopy.remove(item)
+            #         print("\nremoved: " + str(item) + " | rest list " + str(urlCopy))
+
+            # if dl == 'aria':
+            if download_aria2c(itemList, dir) == 0:
+                for i in itemList:
+                    urlCopy.remove(i)
+                print("\nremoved: " + str(itemList) + " | rest list " + str(urlCopy))
+
+        except KeyboardInterrupt:
+            with safer.open(file, 'w') as f:
+                for url in urlCopy:
+                    f.write("%s\n" % url)
+            print("\nInterupt by User\n")
+            exit()
+
+        except:
+            print("\nerror at divideAndConquer list: " + str(sys.exc_info()))
+
+        finally:
+            # will always be executed last, with or without exception
+            with safer.open(file, 'w') as f:
+                for url in urlCopy:
+                    f.write("%s\n" % url)
+
+
 # - - - - - # - - - - - # - - - - - # - - - - - #
 # - - - - - #                       # - - - - - #
 # - - - - - #       wget-download   # - - - - - #
@@ -548,7 +648,7 @@ def wget(wget, space, accept, reject):
                 if os.path.isfile(item):
                     wget_list(item, accept, reject)
                 else:
-                    wget_download(item, accept, reject)
+                    download_wget(item, accept, reject)
 
             wget = ""
             elapsedTime()
@@ -556,7 +656,7 @@ def wget(wget, space, accept, reject):
         else:
             try:
                 url = input("\nPlease enter the Url:\n")
-                wget_download(url, accept, reject)
+                download_wget(url, accept, reject)
 
             except KeyboardInterrupt:
                 pass
@@ -594,10 +694,10 @@ def wget_list(itemList, accept, reject):
             print("\ndownloading: " + item)
 
             if booleanSync:
-                wget_download(str(item), accept, reject)
+                download_wget(str(item), accept, reject)
                 print("finished: " + str(item))
             else:
-                if wget_download(str(item), accept, reject) == 0:
+                if download_wget(str(item), accept, reject) == 0:
                     urlCopy.remove(item)
                     print("\nremoved: " + str(item) + " | rest list " + str(urlCopy))
 
@@ -621,106 +721,6 @@ def wget_list(itemList, accept, reject):
 
         elapsedTime()
         sys.exit(ExitStatus.success)
-
-
-# ----- # ----- #
-def wget_download(content, accept, reject):
-    try:
-        if ";" in content:
-            swap = content.split(";")
-            content = swap[0]
-            directory = swap[1]
-            title = swap[2]
-        else:
-            directory = ""
-            title = ""
-
-        path = os.path.join(os.getcwd(),directory)
-
-        wget = 'wget -c -w 5 --random-wait --limit-rate={bw} -e robots=off'.format(bw = floatBandwidth)
-
-        if directory != "":
-            wget += ' -P {dir}'.format(dir = path)
-
-        if title != "":
-            wget += ' -O {title}'.format(title = getTitleFormated(title))
-
-        if accept != "":
-            wget += ' --accept {extention}'.format(extention = accept)
-
-        if reject != "":
-            wget += ' --reject {extention}'.format(extention = reject)
-
-        # --no-http-keep-alive --no-clobber
-
-        if booleanSync:
-            wget = wget + ' -r -N -np -nd -nH'
-
-        wget += ' "{url}"'.format(url = content)
-
-        # file count
-        path, dirs, files = next(os.walk(path))
-        file_count_prev = len(files)
-
-        # dir size
-        dirSize = subprocess.check_output(['du','-s', path]).split()[0].decode('utf-8')
-
-        # free storage
-        freeStorage = shutil.disk_usage(path).free
-
-        try:
-            # file size
-            fileSize = subprocess.getoutput('wget "' + content + '" --spider --server-response -O - 2>&1| sed -ne "/Content-Length/{s/.*: //;p}"')
-            testSize = int(fileSize)
-        except:
-            testSize = dirSize
-
-        if booleanVerbose:
-            print("wget command:\n" + wget)
-
-        if (int(freeStorage) >= int(testSize)):
-
-            i = 0
-            returned_value = ""
-
-            while i < 3:
-                returned_value = os.system("echo \'" + wget + "\' >&1 | bash")
-
-                if returned_value > 0:
-                    if returned_value == 2048:
-                        return returned_value
-                    else:
-                        print("\nError Code: " + str(returned_value))
-                        i += 1
-                        timer = random.randint(200,1000)/100
-                        print("\nsleep for " + str(timer) + "s")
-                        time.sleep(timer)
-
-                        if i == 3:
-                            print("\nThe was the Command: \n%s" % wget)
-                            os.system("echo '{wget}' >> dl-error-wget.txt".format(wget = content))
-                            return returned_value
-
-                else:
-                    if booleanSpace:
-                        removeFiles(path, file_count_prev)
-                    return returned_value
-
-        else:
-            print("\nnot enough space")
-            print("Directory size: " + bytes2human(int(dirSize)*1000))
-            print("free Space: " + bytes2human(freeStorage))
-
-            if booleanSpace:
-                removeFiles(path, file_count_prev)
-            return 507
-
-    except KeyboardInterrupt:
-        print("\nInterupt by User\n")
-        exit()
-
-    except:
-        print("error at wget download: " + str(sys.exc_info()))
 
 
 # - - - - - # - - - - - # - - - - - # - - - - - #
@@ -817,40 +817,6 @@ def ydl_list(itemList):
         elapsedTime()
 
 
-# ----- # ----- # download
-def ydl_download(content, parameters, output, stringReferer):
-    if stringReferer != "":
-        parameters += ' --referer "{reference}"'.format(reference = stringReferer)
-
-    ydl = 'youtube-dl {parameter} {output} "{url}"'.format(parameter = parameters, output = output, url = content)
-
-    i = 0
-    returned_value = ""
-
-    if booleanVerbose:
-        print("\nydl command is: \n" + ydl + "\n")
-
-    while i < 3:
-
-        returned_value = os.system(ydl)
-
-        if booleanVerbose:
-            print("\nydl command return value: \n" + str(returned_value))
-
-        if returned_value > 0:
-            i += 1
-            timer = random.randint(200,1000)/100
-            print("\nsleep for " + str(timer) + "s")
-            time.sleep(timer)
-
-            if i == 3:
-                print("\nThe was the Command: \n%s" % ydl)
-                os.system("echo '{ydl}' >> dl-error-ydl.txt".format(ydl = content))
-                return returned_value
-        else:
-            return returned_value
-
-
 # ----- # ----- # extractors
 def ydl_extractor(content):
     title = ""
@@ -928,20 +894,20 @@ def host_default(content, title, stringReferer):
                 filename = getTitleFormated(filename)
 
                 output = '-f best --no-playlist -o "{title}.%(ext)s"'.format(title = filename)
-                return ydl_download(content, parameters, output, stringReferer)
+                return download_ydl(content, parameters, output, stringReferer)
             else:
                 filename = getTitleFormated(title)
 
                 output = '-f best --no-playlist -o "{title}.%(ext)s"'.format(title = filename)
-                return ydl_download(content, parameters, output, stringReferer)
+                return download_ydl(content, parameters, output, stringReferer)
 
         except:
             output = '-f best --no-playlist -o "%(title)s.%(ext)s"'
-            return ydl_download(content, parameters, output, stringReferer)
+            return download_ydl(content, parameters, output, stringReferer)
 
     else:
         output = '-i -f best -o "%(extractor)s--%(playlist_uploader)s_%(playlist_title)s/%(playlist_index)s_%(title)s.%(ext)s"'
-        return ydl_download(content, parameters, output, stringReferer)
+        return download_ydl(content, parameters, output, stringReferer)
 
 
 # ----- # ----- # fruithosted, oloadcdn, verystream, vidoza, vivo,
@@ -952,7 +918,7 @@ def host_mostly(content, title, stringReferer):
     title = getTitleFormated(title)
     output = '-f best -o "{title}.%(ext)s"'.format(title = title)
 
-    return ydl_download(content, parameters, output, stringReferer)
+    return download_ydl(content, parameters, output, stringReferer)
 
 
 # ----- # ----- #
@@ -963,7 +929,7 @@ def host_hanime(content, title, stringReferer):
     title = getTitleFormated(title)
     output = '-f best -o "{title}.%(ext)s"'.format(title = title)
 
-    return ydl_download(content, parameters, output, stringReferer)
+    return download_ydl(content, parameters, output, stringReferer)
 
 
 # ----- # ----- #
@@ -991,7 +957,7 @@ def host_hahomoe(content, title, stringReferer):
     title = getTitleFormated(title)
     output = '-f best -o "{title}.mp4"'.format(title = title)
 
-    return ydl_download(url, parameters, output, stringReferer)
+    return download_ydl(url, parameters, output, stringReferer)
 
 
 # ----- # ----- #
@@ -1014,7 +980,7 @@ def host_sxyprn(content, title, stringReferer):
     title = getTitleFormated(title)
     output = '-f best -o "{title}.%(ext)s"'.format(title = title)
 
-    return ydl_download(content, parameters, output, stringReferer)
+    return download_ydl(content, parameters, output, stringReferer)
 
 
 # ----- # ----- #
@@ -1025,7 +991,7 @@ def host_xvideos(content, title, stringReferer):
     title = getTitleFormated(title)
     output = '-f best -o "{title}.mp4"'.format(title = title)
 
-    return ydl_download(content, parameters, output, stringReferer)
+    return download_ydl(content, parameters, output, stringReferer)
 
 
 # ----- # ----- #
@@ -1036,7 +1002,7 @@ def host_porngo(content, title, stringReferer):
     title = getTitleFormated(title)
     output = '-f best -o "{title}.%(ext)s"'.format(title = title)
 
-    return ydl_download(content, parameters, output, stringReferer)
+    return download_ydl(content, parameters, output, stringReferer)
 
 
 # - - - - - # - - - - - # - - - - - # - - - - - # Anime
@@ -1051,7 +1017,7 @@ def host_animeondemand(content, title, stringReferer):
 
     output = "-f 'best[format_id*=ger-Dub]' -o '%(playlist)s/episode-%(playlist_index)s.%(ext)s'"
 
-    return ydl_download(content, parameters, output, stringReferer)
+    return download_ydl(content, parameters, output, stringReferer)
 
 
 # ----- # ----- #
@@ -1065,7 +1031,7 @@ def host_crunchyroll(content, title, stringReferer):
 
     output += " -i -o '%(playlist)s/season-%(season_number)s-episode-%(episode_number)s-%(episode)s.%(ext)s'"
 
-    return ydl_download(content, parameters, output, stringReferer)
+    return download_ydl(content, parameters, output, stringReferer)
 
 
 # - - - - - # - - - - - # - - - - - # - - - - - # platformen
@@ -1083,7 +1049,7 @@ def host_udemy(content, title, stringReferer):
 
     output = "-f best -o '%(playlist)s - {title}/%(chapter_number)s-%(chapter)s/%(playlist_index)s-%(title)s.%(ext)s'".format(title = title)
 
-    return ydl_download(content, parameters, output, stringReferer)
+    return download_ydl(content, parameters, output, stringReferer)
 
 
 # ----- # ----- #
@@ -1098,7 +1064,7 @@ def host_vimeo(content, title, stringReferer):
     title = getTitleFormated(title)
     output = '-f best -o "{title}.%(ext)s"'.format(title = title)
 
-    return ydl_download(content, parameters, output, stringReferer)
+    return download_ydl(content, parameters, output, stringReferer)
 
 
 # ----- # ----- #
@@ -1109,7 +1075,204 @@ def host_cloudfront(content, title, stringReferer):
     title = getTitleFormated(title)
     output = '-f best -o "{title}.mp4"'.format(title = title)
 
-    return ydl_download(content, parameters, output, stringReferer)
+    return download_ydl(content, parameters, output, stringReferer)
+
+
+# - - - - - # - - - - - # - - - - - # - - - - - #
+# - - - - - #                       # - - - - - #
+# - - - - - #      downloader       # - - - - - #
+# - - - - - #                       # - - - - - #
+# - - - - - # - - - - - # - - - - - # - - - - - #
+
+def download_wget(content, accept, reject):
+    try:
+        if ";" in content:
+            swap = content.split(";")
+            content = swap[0]
+            directory = swap[1]
+            title = swap[2]
+        else:
+            directory = ""
+            title = ""
+
+        path = os.path.join(os.getcwd(),directory)
+
+        wget = 'wget -c -w 5 --random-wait --limit-rate={bw} -e robots=off'.format(bw = floatBandwidth)
+
+        if directory != "":
+            wget += ' -P {dir}'.format(dir = path)
+
+        if title != "":
+            wget += ' -O {title}'.format(title = getTitleFormated(title))
+
+        if accept != "":
+            wget += ' --accept {extention}'.format(extention = accept)
+
+        if reject != "":
+            wget += ' --reject {extention}'.format(extention = reject)
+
+        # --no-http-keep-alive --no-clobber
+
+        if booleanSync:
+            wget = wget + ' -r -N -np -nd -nH'
+
+        wget += '"{url}"'.format(url = content)
+
+        # file count
+        path, dirs, files = next(os.walk(path))
+        file_count_prev = len(files)
+
+        # dir size
+        dirSize = subprocess.check_output(['du','-s', path]).split()[0].decode('utf-8')
+
+        # free storage
+        freeStorage = shutil.disk_usage(path).free
+
+        try:
+            # file size
+            fileSize = subprocess.getoutput('wget "' + content + '" --spider --server-response -O - 2>&1| sed -ne "/Content-Length/{s/.*: //;p}"')
+            testSize = int(fileSize)
+        except:
+            testSize = dirSize
+
+        if booleanVerbose:
+            print("wget command:\n" + wget)
+
+        if (int(freeStorage) >= int(testSize)):
+
+            i = 0
+            returned_value = ""
+
+            while i < 3:
+                returned_value = os.system("echo \'" + wget + "\' >&1 | bash")
+
+                if returned_value > 0:
+                    if returned_value == 2048:
+                        return returned_value
+                    else:
+                        print("\nError Code: " + str(returned_value))
+                        i += 1
+                        timer = random.randint(200,1000)/100
+                        print("\nsleep for " + str(timer) + "s")
+                        time.sleep(timer)
+
+                        if i == 3:
+                            print("\nThe was the Command: \n%s" % wget)
+                            os.system("echo '{wget}' >> dl-error-wget.txt".format(wget = content))
+                            return returned_value
+
+                else:
+                    if booleanSpace:
+                        removeFiles(path, file_count_prev)
+                    return returned_value
+
+        else:
+            print("\nnot enough space")
+            print("Directory size: " + bytes2human(int(dirSize)*1000))
+            print("free Space: " + bytes2human(freeStorage))
+
+            if booleanSpace:
+                removeFiles(path, file_count_prev)
+            return 507
+
+    except KeyboardInterrupt:
+        print("\nInterupt by User\n")
+        exit()
+
+    except:
+        print("error at wget download: " + str(sys.exc_info()))
+
+
+def download_ydl(content, parameters, output, stringReferer):
+    if floatBandwidth != "0":
+        parameters = parameters + " --limit-rate {}".format(floatBandwidth)
+
+    if booleanAxel:
+        parameters = parameters + " --external-downloader axel"
+
+        if flaotBandwidth != "0":
+            parameters = parameters + " --external-downloader-args '-s {}'".format(human2bytes(floatBandwidth))
+
+    if stringReferer != "":
+        parameters += ' --referer "{reference}"'.format(reference = stringReferer)
+
+    ydl = 'youtube-dl {parameter} {output} "{url}"'.format(parameter = parameters, output = output, url = content)
+
+    i = 0
+    returned_value = ""
+
+    if booleanVerbose:
+        print("\nydl command is: \n" + ydl + "\n")
+
+    while i < 3:
+
+        returned_value = os.system(ydl)
+
+        if booleanVerbose:
+            print("\nydl command return value: \n" + str(returned_value))
+
+        if returned_value > 0:
+            i += 1
+            timer = random.randint(200,1000)/100
+            print("\nsleep for " + str(timer) + "s")
+            time.sleep(timer)
+
+            if i == 3:
+                print("\nThe was the Command: \n%s" % ydl)
+                os.system("echo '{ydl}' >> dl-error-ydl.txt".format(ydl = content))
+                return returned_value
+        else:
+            return returned_value
+
+
+def download_aria2c(content, dir):
+    try:
+        directory = dir
+
+
+        path = os.path.join(os.getcwd(),directory)
+        links = getEchoList(content)
+
+        dl = 'echo "' + links + '" | '
+        
+        dl += 'aria2c -i - -x 8 -j 16 --continue --min-split-size=1M --optimize-concurrent-downloads'
+        
+        if floatBandwidth != "0":
+            dl += " --max-overall-download-limit={}".format(floatBandwidth)
+        
+        if dir != "":
+            dl += ' --dir="{}"'.format(dir)
+
+        i = 0
+        returned_value = ""
+
+        while i < 3:
+            returned_value = os.system("echo \'" + dl + "\' >&1 | bash")
+
+            if returned_value > 0:
+                if returned_value == 2048:
+                    return returned_value
+                else:
+                    print("\nError Code: " + str(returned_value))
+                    i += 1
+                    timer = random.randint(200,1000)/100
+                    print("\nsleep for " + str(timer) + "s")
+                    time.sleep(timer)
+
+                    if i == 3:
+                        print("\nThe was the Command: \n%s" % dl)
+                        os.system("echo '{dl}' >> dl-error-aria2.txt".format(dl = content))
+                        return returned_value
+
+            else:
+                return returned_value
+
+    except KeyboardInterrupt:
+        print("\nInterupt by User\n")
+        exit()
+
+    except:
+        print("error at aria2 download: " + str(sys.exc_info()))
 
 
 # - - - - - # - - - - - # - - - - - # - - - - - # main
