@@ -602,7 +602,7 @@ def divideAndConquer(url, file, dir, chunck_size):
             if download_aria2c(itemList, dir) == 0:
                 for i in itemList:
                     urlCopy.remove(i)
-                    
+
                 if booleanVerbose:
                     print("\nremoved: " + str(itemList) + " | rest list " + str(urlCopy))
 
@@ -611,7 +611,8 @@ def divideAndConquer(url, file, dir, chunck_size):
                 for url in urlCopy:
                     f.write("%s\n" % url)
             print("\nInterupt by User\n")
-            exit()
+            sys.exit()
+            break
 
         except:
             print("\nerror at divideAndConquer list: " + str(sys.exc_info()))
@@ -1182,53 +1183,61 @@ def download_wget(content, accept, reject):
 
     except KeyboardInterrupt:
         print("\nInterupt by User\n")
-        exit()
+        os._exit(1)
 
     except:
         print("error at wget download: " + str(sys.exc_info()))
 
 
 def download_ydl(content, parameters, output, stringReferer):
-    if floatBandwidth != "0":
-        parameters = parameters + " --limit-rate {}".format(floatBandwidth)
+    try:
+        if floatBandwidth != "0":
+            parameters = parameters + " --limit-rate {}".format(floatBandwidth)
 
-    if booleanAxel:
-        parameters = parameters + " --external-downloader axel"
+        if booleanAxel:
+            parameters = parameters + " --external-downloader axel"
 
-        if flaotBandwidth != "0":
-            parameters = parameters + " --external-downloader-args '-s {}'".format(human2bytes(floatBandwidth))
+            if flaotBandwidth != "0":
+                parameters = parameters + " --external-downloader-args '-s {}'".format(human2bytes(floatBandwidth))
 
-    if stringReferer != "":
-        parameters += ' --referer "{reference}"'.format(reference = stringReferer)
+        if stringReferer != "":
+            parameters += ' --referer "{reference}"'.format(reference = stringReferer)
 
-    ydl = 'youtube-dl {parameter} {output} "{url}"'.format(parameter = parameters, output = output, url = content)
+        ydl = 'youtube-dl {parameter} {output} "{url}"'.format(parameter = parameters, output = output, url = content)
 
-    i = 0
-    returned_value = ""
-
-    if booleanVerbose:
-        print("\nydl command is: \n" + ydl + "\n")
-
-    while i < 3:
-
-        returned_value = os.system(ydl)
+        i = 0
+        returned_value = ""
 
         if booleanVerbose:
-            print("\nydl command return value: \n" + str(returned_value))
+            print("\nydl command is: \n" + ydl + "\n")
 
-        if returned_value > 0:
-            i += 1
-            timer = random.randint(200,1000)/100
-            print("\nsleep for " + str(timer) + "s")
-            time.sleep(timer)
+        while i < 3:
 
-            if i == 3:
-                print("\nThe was the Command: \n%s" % ydl)
-                os.system("echo '{ydl}' >> dl-error-ydl.txt".format(ydl = content))
+            returned_value = os.system(ydl)
+
+            if booleanVerbose:
+                print("\nydl command return value: \n" + str(returned_value))
+
+            if returned_value > 0:
+                i += 1
+                timer = random.randint(200,1000)/100
+                print("\nsleep for " + str(timer) + "s")
+                time.sleep(timer)
+
+                if i == 3:
+                    print("\nThe was the Command: \n%s" % ydl)
+                    os.system("echo '{ydl}' >> dl-error-ydl.txt".format(ydl = content))
+                    return returned_value
+            else:
                 return returned_value
-        else:
-            return returned_value
 
+    except KeyboardInterrupt:
+        print("\nInterupt by User\n")
+        os._exit(1)
+
+    except:
+        print("error at youtube-dl download: " + str(sys.exc_info()))
+    
 
 def download_aria2c(content, dir):
     try:
@@ -1274,7 +1283,7 @@ def download_aria2c(content, dir):
 
     except KeyboardInterrupt:
         print("\nInterupt by User\n")
-        exit()
+        os._exit(1)
 
     except:
         print("error at aria2 download: " + str(sys.exc_info()))
