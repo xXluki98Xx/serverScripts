@@ -15,6 +15,7 @@ import bs4
 import json
 import youtube_dl
 import ffmpeg
+import requests
 
 from exitstatus import ExitStatus
 
@@ -392,7 +393,7 @@ def getLinkList(link, listFile):
         print("got page")
         content = page.content
 
-        DOMdocument = BeautifulSoup(content, 'html.parser')
+        DOMdocument = bs4.BeautifulSoup(content, 'html.parser')
 
         listLinks = []
 
