@@ -5,3 +5,4 @@ click
 beautifulsoup4
 youtube-dl
 ffmpeg-python
+requests
