@@ -602,7 +602,9 @@ def divideAndConquer(url, file, dir, chunck_size):
             if download_aria2c(itemList, dir) == 0:
                 for i in itemList:
                     urlCopy.remove(i)
-                print("\nremoved: " + str(itemList) + " | rest list " + str(urlCopy))
+                    
+                if booleanVerbose:
+                    print("\nremoved: " + str(itemList) + " | rest list " + str(urlCopy))
 
         except KeyboardInterrupt:
             with safer.open(file, 'w') as f:
