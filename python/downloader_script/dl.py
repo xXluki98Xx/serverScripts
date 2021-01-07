@@ -561,7 +561,7 @@ def convertFiles(newformat, path, subpath, ffmpeg):
 @main.command(help="")
 
 # switch
-# @click.option("-f", "--ffmpeg", default=False, is_flag=True, help="ffmpeg")
+@click.option("-r", "--reverse", default=False, is_flag=True, help="reverse")
 
 # string
 @click.option("-d", "--dir", default="", help="Path which will contain the new Files")
@@ -573,7 +573,7 @@ def convertFiles(newformat, path, subpath, ffmpeg):
 # arguments
 @click.argument("url", nargs=1)
 
-def divideAndConquer(url, file, dir, chunck_size):
+def divideAndConquer(url, file, dir, chunck_size, reverse):
     if not os.path.isfile(file):
         getLinkList(url, file)
 
@@ -584,6 +584,9 @@ def divideAndConquer(url, file, dir, chunck_size):
     urlCopy = urlList.copy()
 
     chunkedList = list(chunks(urlCopy, chunck_size))
+
+    if reverse:
+        chunkedList.reverse()
 
     for itemList in chunkedList:
 
