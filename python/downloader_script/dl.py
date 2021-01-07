@@ -410,7 +410,7 @@ def getLinkList(link, listFile):
 
 def split_list(alist, wanted_parts=1):
     length = len(alist)
-    return [ alist[i*length // wanted_parts: (i+1)*length // wanted_parts] 
+    return [ alist[i*length // wanted_parts: (i+1)*length // wanted_parts]
         for i in range(wanted_parts) ]
 
 
@@ -1200,7 +1200,7 @@ def download_ydl(content, parameters, output, stringReferer):
         if booleanAxel:
             parameters = parameters + " --external-downloader axel"
 
-            if flaotBandwidth != "0":
+            if floatBandwidth != "0":
                 parameters = parameters + " --external-downloader-args '-s {}'".format(human2bytes(floatBandwidth))
 
         if stringReferer != "":
@@ -1240,7 +1240,7 @@ def download_ydl(content, parameters, output, stringReferer):
 
     except:
         print("error at youtube-dl download: " + str(sys.exc_info()))
-    
+
 
 def download_aria2c(content, dir):
     try:
@@ -1251,12 +1251,12 @@ def download_aria2c(content, dir):
         links = getEchoList(content)
 
         dl = 'echo "' + links + '" | '
-        
+
         dl += 'aria2c -i - -x 8 -j 16 --continue --min-split-size=1M --optimize-concurrent-downloads'
-        
+
         if floatBandwidth != "0":
             dl += " --max-overall-download-limit={}".format(floatBandwidth)
-        
+
         if dir != "":
             dl += ' --dir="{}"'.format(dir)
 
