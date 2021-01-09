@@ -1186,6 +1186,8 @@ def download_wget(content, accept, reject):
 
     except KeyboardInterrupt:
         print("\nInterupt by User\n")
+        if booleanVerbose:
+            os.system("echo '{wget}' >> dl-error-wget.txt".format(wget = content))
         os._exit(1)
 
     except:
@@ -1236,6 +1238,8 @@ def download_ydl(content, parameters, output, stringReferer):
 
     except KeyboardInterrupt:
         print("\nInterupt by User\n")
+        if booleanVerbose:
+            os.system("echo '{ydl}' >> dl-error-ydl.txt".format(ydl = content))
         os._exit(1)
 
     except:
