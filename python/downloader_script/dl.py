@@ -1278,7 +1278,8 @@ def download_aria2c(content, dir):
 
                     if i == 3:
                         print("\nThe was the Command: \n%s" % dl)
-                        os.system("echo '{dl}' >> dl-error-aria2.txt".format(dl = content))
+                        for item in content:
+                            os.system("echo '{dl}' >> dl-error-aria2.txt".format(dl = item))
                         return returned_value
 
             else:
@@ -1286,6 +1287,9 @@ def download_aria2c(content, dir):
 
     except KeyboardInterrupt:
         print("\nInterupt by User\n")
+        if booleanVerbose:
+            for item in content:
+                os.system("echo '{dl}' >> dl-error-aria2.txt".format(dl = item))
         os._exit(1)
 
     except:
