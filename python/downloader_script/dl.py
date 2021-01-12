@@ -1125,7 +1125,7 @@ def download_wget(content, accept, reject):
         if booleanSync:
             wget = wget + ' -r -N -np -nd -nH'
 
-        wget += '"{url}"'.format(url = content)
+        wget += ' "{url}"'.format(url = content)
 
         # file count
         path, dirs, files = next(os.walk(path))
