@@ -614,6 +614,7 @@ def divideAndConquer(url, file, dir, chunck_size, reverse):
                 for url in urlCopy:
                     f.write("%s\n" % url)
             print("\nInterupt by User\n")
+            elapsedTime()
             sys.exit()
             break
 
@@ -625,6 +626,8 @@ def divideAndConquer(url, file, dir, chunck_size, reverse):
             with safer.open(file, 'w') as f:
                 for url in urlCopy:
                     f.write("%s\n" % url)
+
+    elapsedTime()
 
 
 # - - - - - # - - - - - # - - - - - # - - - - - #
@@ -694,9 +697,9 @@ def wget_list(itemList, accept, reject):
     if booleanSync:
         random.shuffle(urlList)
 
-    try:
-        for item in urlList:
+    for item in urlList:
 
+        try:
             if item.startswith('#') or item == "":
                 urlCopy.remove(item)
                 continue
@@ -711,26 +714,26 @@ def wget_list(itemList, accept, reject):
                     urlCopy.remove(item)
                     print("\nremoved: " + str(item) + " | rest list " + str(urlCopy))
 
-    except KeyboardInterrupt:
-        if not booleanSync:
-            with safer.open(itemList, 'w') as f:
-                for url in urlCopy:
-                    f.write("%s\n" % url)
-        print("\nInterupt by User\n")
-        exit()
+        except KeyboardInterrupt:
+            if not booleanSync:
+                with safer.open(itemList, 'w') as f:
+                    for url in urlCopy:
+                        f.write("%s\n" % url)
+            print("\nInterupt by User\n")
+            elapsedTime()
+            sys.exit()
 
-    except:
-        print("\nerror at wget list: " + str(sys.exc_info()))
+        except:
+            print("\nerror at wget list: " + str(sys.exc_info()))
 
-    finally:
-        # will always be executed last, with or without exception
-        if not booleanSync:
-            with safer.open(itemList, 'w') as f:
-                for url in urlCopy:
-                    f.write("%s\n" % url)
+        finally:
+            # will always be executed last, with or without exception
+            if not booleanSync:
+                with safer.open(itemList, 'w') as f:
+                    for url in urlCopy:
+                        f.write("%s\n" % url)
 
-        elapsedTime()
-        sys.exit(ExitStatus.success)
+    elapsedTime()
 
 
 # - - - - - # - - - - - # - - - - - # - - - - - #
@@ -790,9 +793,9 @@ def ydl_list(itemList):
     if booleanVerbose:
         print("\nydl download list: \n" + str(urlCopy))
 
-    try:
-        for item in urlList:
+    for item in urlList:
 
+        try:
             if item.startswith('#') or item == "":
                 urlCopy.remove(item)
                 continue
@@ -807,26 +810,26 @@ def ydl_list(itemList):
                     urlCopy.remove(item)
                     print("removed: " + str(item) + " | rest list " + str(urlCopy))
 
-    except KeyboardInterrupt:
-        print("\nInterupt by User\n")
-        if not booleanSync:
-            with safer.open(itemList, 'w') as f:
-                for url in urlCopy:
-                    f.write("%s\n" % url)
-        exit()
+        except KeyboardInterrupt:
+            print("\nInterupt by User\n")
+            if not booleanSync:
+                with safer.open(itemList, 'w') as f:
+                    for url in urlCopy:
+                        f.write("%s\n" % url)
+            elapsedTime()
+            sys.exit()
 
-    except:
-        print("\nerror at ydl list: \n" + str(sys.exc_info()))
+        except:
+            print("\nerror at ydl list: \n" + str(sys.exc_info()))
 
-    finally:
-        # will always be executed last, with or without exception
-        if not booleanSync:
-            with safer.open(itemList, 'w') as f:
-                for url in urlCopy:
-                    f.write("%s\n" % url)
-        sys.exit(ExitStatus.success)
-        elapsedTime()
+        finally:
+            # will always be executed last, with or without exception
+            if not booleanSync:
+                with safer.open(itemList, 'w') as f:
+                    for url in urlCopy:
+                        f.write("%s\n" % url)
 
+    elapsedTime()
 
 # ----- # ----- # extractors
 def ydl_extractor(content):
@@ -1127,7 +1130,7 @@ def download_wget(content, accept, reject):
         if booleanSync:
             wget = wget + ' -r -N -np -nd -nH'
 
-        wget += '"{url}"'.format(url = content)
+        wget += ' "{url}"'.format(url = content)
 
         # file count
         path, dirs, files = next(os.walk(path))
