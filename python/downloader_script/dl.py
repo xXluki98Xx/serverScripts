@@ -665,6 +665,7 @@ def wget(wget, space, accept, reject):
         else:
             try:
                 url = input("\nPlease enter the Url:\n")
+                start_time = datetime.datetime.now()
                 download_wget(url, accept, reject)
 
             except KeyboardInterrupt:
@@ -760,6 +761,7 @@ def ydl(url):
         else:
             try:
                 url = input("\nPlease enter the Url:\n")
+                start_time = datetime.datetime.now()
                 ydl_extractor(url)
 
             except KeyboardInterrupt:
