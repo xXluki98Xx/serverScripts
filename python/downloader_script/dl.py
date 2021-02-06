@@ -108,7 +108,7 @@ def func_convertFilesFfmpeg(fileName, newFormat, subPath, vcodec, acodec):
                 output = newFile
 
             if vcodec != "":
-                ffmpeg.input(fileName).output(output + "." + newFormat, vcodec=vcodec, acodec=acodec).run()
+                ffmpeg.input(fileName).output(output + "." + newFormat, vcodec=vcodec, acodec=acodec, map='0').run()
             else:
                 ffmpeg.input(fileName).output(output + "." + newFormat).run()
         except:
@@ -126,6 +126,9 @@ def func_convertDirFiles(path, newformat, subpath, vcodec, acodec):
             print("file count: " + str(len(files)))
 
         for f in files:
+            if f.startswith('.'):
+                continue
+
             filePath = os.path.join(path, f)
 
             if booleanVerbose:
@@ -136,6 +139,9 @@ def func_convertDirFiles(path, newformat, subpath, vcodec, acodec):
 
         for d in dirs:
             if d == subpath:
+                continue
+
+            if d.startswith('.'):
                 continue
 
             nextPath = os.path.join(paths, d)
