@@ -118,18 +118,12 @@ def func_convertFilesFfmpeg(fileName, newFormat, subPath, vcodec, acodec):
 # ----- # ----- #
 def func_convertDirFiles(path, newformat, subpath, vcodec, acodec):
     try:
-        sPath = func_formatingDirectories(path)
-        curPath = os.path.join(os.getcwd(), sPath)
+        paths, dirs, files = next(os.walk(path))
 
-        print("sPath: " + sPath)
-        print("curPath: " + curPath)
-
-        func_rename(curPath, "", 0, 0)
-
-        paths, dirs, files = next(os.walk(curPath))
-        print("spath: " + curPath)
-        print("dirs: " + str(dirs))
-        print("file count: " + str(len(files)))
+        if booleanVerbose:
+            print("convertDirFiles\npath: " + path)
+            print("dirs: " + str(dirs))
+            print("file count: " + str(len(files)))
 
         for f in files:
             filePath = os.path.join(path, f)
@@ -600,16 +594,17 @@ def convertFiles(newformat, path, subpath, ffmpeg, vcodec, acodec):
                 itemPathComplete = os.path.join(os.getcwd(), itemPath)
 
                 if booleanVerbose:
-                    print("if File: " + str(os.path.isfile(itemPathComplete)))
                     print("filePathComplete: " + itemPathComplete)
 
                 if os.path.isfile(itemPathComplete):
+                    if booleanVerbose:
+                        print("if File: " + str(os.path.isfile(itemPathComplete)))
                     func_convertFilesFfmpeg(itemPathComplete, newformat, subpath, vcodec, acodec)
 
-                if booleanVerbose:
-                    print("if Dir: " + str(os.path.isdir(itemPathComplete)))
 
                 if os.path.isdir(itemPathComplete):
+                    if booleanVerbose:
+                        print("if Dir: " + str(os.path.isdir(itemPathComplete)))
                     func_convertDirFiles(itemPathComplete, newformat, subpath, vcodec, acodec)
 
         except:
