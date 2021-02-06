@@ -34,7 +34,7 @@ def func_rename(filePath, platform, offset, cut):
         try:
             path, dirs, files = next(os.walk(filePath))
         except:
-            print("\ncould the path be wrong?\n")
+            print("\nerror at func_rename: could the path be wrong?\n")
 
         for directory in dirs:
             func_rename(os.path.join(filePath, directory), platform, offset, cut)
@@ -84,28 +84,76 @@ def func_replace(filePath, old, new):
 
 
 # ----- # ----- #
-def func_convertFilesFfmpeg(fileName, newFormat, subPath):
-    newFile = fileName.rsplit(".", 1)[0]
-    output = ""
+def func_convertFilesFfmpeg(fileName, newFormat, subPath, vcodec, acodec):
+    if fileName.find('.') != -1:
+        try:
+            newFile = fileName.rsplit(".", 1)[0]
+            output = ""
 
-    if subPath:
-        if "/" in newFile:
-            newFile = newFile.rsplit("/", 1)
-            path = newFile[0] + "/" + subPath
+            if subPath:
+                if "/" in newFile:
+                    newFile = newFile.rsplit("/", 1)
+                    path = newFile[0] + "/" + subPath
 
-            if not os.path.exists(path):
-                os.makedirs(path)
+                    if not os.path.exists(path):
+                        os.makedirs(path)
 
-            output = path + "/" + newFile[1]
-        else:
-            if not os.path.exists(subPath):
-                os.makedirs(subPath)
+                    output = path + "/" + newFile[1]
+                else:
+                    if not os.path.exists(subPath):
+                        os.makedirs(subPath)
 
-            output = subPath + "/" + newFile
-    else:
-        output = newFile
+                    output = subPath + "/" + newFile
+            else:
+                output = newFile
 
-    ffmpeg.input(fileName).output(output + "." + newFormat).run()
+            if vcodec != "":
+                ffmpeg.input(fileName).output(output + "." + newFormat, vcodec=vcodec, acodec=acodec).run()
+            else:
+                ffmpeg.input(fileName).output(output + "." + newFormat).run()
+        except:
+            print("\nerror at func_convertFilesFfmpeg: " + str(sys.exc_info()))
+
+
+# ----- # ----- #
+def func_convertDirFiles(path, newformat, subpath, vcodec, acodec):
+    try:
+        sPath = func_formatingDirectories(path)
+        curPath = os.path.join(os.getcwd(), sPath)
+
+        print("sPath: " + sPath)
+        print("curPath: " + curPath)
+
+        func_rename(curPath, "", 0, 0)
+
+        paths, dirs, files = next(os.walk(curPath))
+        print("spath: " + curPath)
+        print("dirs: " + str(dirs))
+        print("file count: " + str(len(files)))
+
+        for f in files:
+            filePath = os.path.join(path, f)
+
+            if booleanVerbose:
+                print("filePath: " + filePath)
+                print("f: " + f)
+
+            func_convertFilesFfmpeg(filePath, newformat, subpath, vcodec, acodec)
+
+        for d in dirs:
+            if d == subpath:
+                continue
+
+            nextPath = os.path.join(paths, d)
+
+            if booleanVerbose:
+                print("newformat: " + newformat)
+                print("nextPath: " + nextPath)
+                print("ffmpeg: " + str(ffmpeg))
+
+            func_convertDirFiles(nextPath, newformat, subpath, vcodec, acodec)
+    except:
+        print("\nerror at func_convertDirFiles: " + str(sys.exc_info()))
 
 
 # - - - - - # - - - - - # - - - - - # - - - - - # sub functions
@@ -167,6 +215,9 @@ def func_formatingFilename(text):
 
 # ----- # ----- # format folder
 def func_formatingDirectories(text):
+    if text.startswith('.'):
+        return
+
     reg = re.compile(r"[^\w\d\s\-\_\/\.]")
     reg3 = re.compile(r"-{3,}")
 
@@ -528,33 +579,41 @@ def replace(replace, old, new):
 
 
 # ----- # ----- # convertFiles command
-@main.command(help="Path for rename, not file")
+@main.command(help="Path for convert, not file")
 
 # switch
 @click.option("-f", "--ffmpeg", default=False, is_flag=True, help="ffmpeg")
 
 # string
 @click.option("-sp", "--subpath", default="", help="Path which will contain the new Files")
+@click.option("-vc", "--vcodec", default="", help="new Video Codec")
+@click.option("-ac", "--acodec", default="copy", help="new Audio Codec")
 
 # arguments
 @click.argument("newformat", nargs=1)
 @click.argument("path", nargs=-1)
 
-def convertFiles(newformat, path, subpath, ffmpeg):
+def convertFiles(newformat, path, subpath, ffmpeg, vcodec, acodec):
     if ffmpeg:
-        for itemPath in path:
-            sPath = func_formatingDirectories(itemPath)
-            func_rename(itemPath, "", 0, 0)
+        try:
+            for itemPath in path:
+                itemPathComplete = os.path.join(os.getcwd(), itemPath)
 
-            try:
-                paths, dirs, files = next(os.walk(sPath))
+                if booleanVerbose:
+                    print("if File: " + str(os.path.isfile(itemPathComplete)))
+                    print("filePathComplete: " + itemPathComplete)
 
-                for f in os.listdir(paths):
-                    old = os.path.join(paths,f)
-                    func_convertFilesFfmpeg(old, newformat, subpath)
-            except:
-                if os.path.isfile(os.path.join(os.getcwd(),sPath)):
-                    func_convertFilesFfmpeg(sPath, newformat, subpath)
+                if os.path.isfile(itemPathComplete):
+                    func_convertFilesFfmpeg(itemPathComplete, newformat, subpath, vcodec, acodec)
+
+                if booleanVerbose:
+                    print("if Dir: " + str(os.path.isdir(itemPathComplete)))
+
+                if os.path.isdir(itemPathComplete):
+                    func_convertDirFiles(itemPathComplete, newformat, subpath, vcodec, acodec)
+
+        except:
+            print("\nerror at convertFiles ffmpeg: " + str(sys.exc_info()))
 
 
 # ----- # ----- # divideAndConquer command
