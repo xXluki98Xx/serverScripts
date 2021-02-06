@@ -1,24 +1,27 @@
 #!/usr/bin/env python3
 
 import datetime
+import grp
+import json
 import os
+import pwd
 import random
 import re
+import shutil
+import stat
+import subprocess
 import sys
 import time
 import urllib.request
-import subprocess
-import shutil
-import click
-import safer
+from pathlib import Path
+
 import bs4
-import json
-import youtube_dl
+import click
 import ffmpeg
 import requests
-
+import safer
+import youtube_dl
 from exitstatus import ExitStatus
-
 
 # - - - - - # - - - - - # - - - - - # - - - - - # help functions
 
@@ -86,31 +89,48 @@ def func_replace(filePath, old, new):
 # ----- # ----- #
 def func_convertFilesFfmpeg(fileName, newFormat, subPath, vcodec, acodec):
     if fileName.find('.') != -1:
+
         try:
-            newFile = fileName.rsplit(".", 1)[0]
             output = ""
+            newFile = fileName.rsplit(".", 1)[0]
+
+            if '/' in newFile:
+                path, title = newFile.rsplit('/', 1)
+                title = getTitleFormated(title)
+
+            else:
+                title = getTitleFormated(newFile)
 
             if subPath:
                 if "/" in newFile:
-                    newFile = newFile.rsplit("/", 1)
-                    path = newFile[0] + "/" + subPath
+                    path = path + "/" + subPath
 
                     if not os.path.exists(path):
                         os.makedirs(path)
 
-                    output = path + "/" + newFile[1]
+                    output = path + "/" + title
                 else:
                     if not os.path.exists(subPath):
                         os.makedirs(subPath)
 
-                    output = subPath + "/" + newFile
+                    output = subPath + "/" + title
             else:
-                output = newFile
+                output = title
+
+            output = output + '.' + newFormat
 
             if vcodec != "":
-                ffmpeg.input(fileName).output(output + "." + newFormat, vcodec=vcodec, acodec=acodec, map='0').run()
+                ffmpeg.input(fileName).output(output, vcodec=vcodec, acodec=acodec, map='0').run()
             else:
-                ffmpeg.input(fileName).output(output + "." + newFormat).run()
+                ffmpeg.input(fileName).output(output, acodec=acodec, map='0').run()
+
+            if booleanVerbose:
+                print("Permissions: " + oct(stat.S_IMODE(os.lstat(fileName).st_mode)))
+                print("owner: " + Path(fileName).owner() + ' | ' + str(pwd.getpwnam(Path(fileName).owner()).pw_uid))
+                print("group: " + Path(fileName).group() + ' | ' + str(grp.getgrnam(Path(fileName).group()).gr_gid))
+            
+            Path(output).chmod(stat.S_IMODE(os.lstat(fileName).st_mode))
+            os.chown(output, pwd.getpwnam(Path(fileName).owner()).pw_uid, grp.getgrnam(Path(fileName).group()).gr_gid)
         except:
             print("\nerror at func_convertFilesFfmpeg: " + str(sys.exc_info()))
 
@@ -615,6 +635,8 @@ def convertFiles(newformat, path, subpath, ffmpeg, vcodec, acodec):
 
         except:
             print("\nerror at convertFiles ffmpeg: " + str(sys.exc_info()))
+
+    elapsedTime()
 
 
 # ----- # ----- # divideAndConquer command
