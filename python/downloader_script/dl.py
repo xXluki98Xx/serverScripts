@@ -122,13 +122,13 @@ def func_convertFilesFfmpeg(fileName, newFormat, subPath, vcodec, acodec):
             if vcodec != "":
                 ffmpeg.input(fileName).output(output, vcodec=vcodec, acodec=acodec, map='0').run()
             else:
-                ffmpeg.input(fileName).output(output, acodec=acodec, map='0').run()
+                ffmpeg.input(fileName).output(output).run()
 
             if booleanVerbose:
                 print("Permissions: " + oct(stat.S_IMODE(os.lstat(fileName).st_mode)))
                 print("owner: " + Path(fileName).owner() + ' | ' + str(pwd.getpwnam(Path(fileName).owner()).pw_uid))
                 print("group: " + Path(fileName).group() + ' | ' + str(grp.getgrnam(Path(fileName).group()).gr_gid))
-            
+
             Path(output).chmod(stat.S_IMODE(os.lstat(fileName).st_mode))
             os.chown(output, pwd.getpwnam(Path(fileName).owner()).pw_uid, grp.getgrnam(Path(fileName).group()).gr_gid)
         except:
