@@ -926,6 +926,15 @@ def ydl_extractor(content):
         except ValueError:
             url = content
 
+    if ('magnet:?xt=urn:btih' in content):
+        try:
+            (url, directory) = content.split(';')
+        except ValueError:
+            url = content
+            directory = ""
+
+        return download_aria2c_magnet(url, directory)
+
     webpageResult = testWebpage(url.split("?")[0])
     if webpageResult != 0:
         return webpageResult
@@ -1176,7 +1185,7 @@ def host_cloudfront(content, title, stringReferer):
 
 # - - - - - # - - - - - # - - - - - # - - - - - #
 # - - - - - #                       # - - - - - #
-# - - - - - #      downloader       # - - - - - #
+# - - - - - #       download        # - - - - - #
 # - - - - - #                       # - - - - - #
 # - - - - - # - - - - - # - - - - - # - - - - - #
 
@@ -1335,10 +1344,6 @@ def download_ydl(content, parameters, output, stringReferer):
 
 def download_aria2c(content, dir):
     try:
-        directory = dir
-
-
-        path = os.path.join(os.getcwd(),directory)
         links = getEchoList(content)
 
         dl = 'echo "' + links + '" | '
@@ -1381,6 +1386,51 @@ def download_aria2c(content, dir):
         if booleanVerbose:
             for item in content:
                 os.system("echo '{dl}' >> dl-error-aria2.txt".format(dl = item))
+        os._exit(1)
+
+    except:
+        print("error at aria2 download: " + str(sys.exc_info()))
+
+    
+def download_aria2c_magnet(content, dir):
+    try:
+        dl = 'aria2c --seed-time=0'
+
+        if dir != "":
+            dl += ' --dir="{}"'.format(dir)
+
+        dl += ' "{}"'.format(content)
+
+        i = 0
+        returned_value = ""
+
+        while i < 3:
+            returned_value = os.system("echo \'" + dl + "\' >&1 | bash")
+
+            if returned_value > 0:
+                if returned_value == 2048:
+                    return returned_value
+                else:
+                    print("\nError Code: " + str(returned_value))
+                    i += 1
+                    timer = random.randint(200,1000)/100
+                    print("\nsleep for " + str(timer) + "s")
+                    time.sleep(timer)
+
+                    if i == 3:
+                        print("\nThe was the Command: \n%s" % dl)
+                        for item in content:
+                             os.system("echo '{dl}' >> dl-error-aria2-magnet.txt".format(dl = content))
+                        return returned_value
+
+            else:
+                return returned_value
+
+    except KeyboardInterrupt:
+        print("\nInterupt by User\n")
+        if booleanVerbose:
+            for item in content:
+                os.system("echo '{dl}' >> dl-error-aria2-magnet.txt".format(dl = content))
         os._exit(1)
 
     except:
