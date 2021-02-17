@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import datetime
 import grp
 import json
 import os
@@ -13,6 +12,7 @@ import subprocess
 import sys
 import time
 import urllib.request
+from datetime import datetime
 from pathlib import Path
 
 import bs4
@@ -300,7 +300,7 @@ def removeFiles(path, file_count_prev):
             index = 0
             for f in os.listdir(path):
                 index += 1
-                if ( os.stat(os.path.join(path,f)).st_mtime < (datetime.datetime.now().timestamp() - (6 * 30 * 86400)) ):
+                if ( os.stat(os.path.join(path,f)).st_mtime < (datetime.now().timestamp() - (6 * 30 * 86400)) ):
                     files.append(os.path.join(path,f))
 
             if booleanVerbose:
@@ -317,7 +317,7 @@ def removeFiles(path, file_count_prev):
             index = 0
             for f in os.listdir(path):
                 index += 1
-                if ( os.stat(os.path.join(path,f)).st_mtime < (datetime.datetime.now().timestamp() - (12 * 30 * 86400)) ):
+                if ( os.stat(os.path.join(path,f)).st_mtime < (datetime.now().timestamp() - (12 * 30 * 86400)) ):
                     files.append(os.path.join(path,f))
 
             if booleanVerbose:
@@ -433,7 +433,7 @@ def getLanguage(platform):
 
 # ----- # ----- # time measurement
 def elapsedTime():
-    time_elapsed = datetime.datetime.now() - start_time
+    time_elapsed = datetime.now() - start_time
     print('\nTime elapsed (hh:mm:ss.ms): {}'.format(time_elapsed))
 
 
@@ -655,7 +655,7 @@ def convertFiles(newformat, path, subpath, ffmpeg, vcodec, acodec):
 # arguments
 @click.argument("url", nargs=1)
 
-def divideAndConquer(url, file, dir, chunck_size, reverse):
+def aria2c(url, file, dir, chunck_size, reverse):
     if not os.path.isfile(file):
         getLinkList(url, file)
 
@@ -750,7 +750,7 @@ def wget(wget, space, accept, reject):
         else:
             try:
                 url = input("\nPlease enter the Url:\n")
-                start_time = datetime.datetime.now()
+                start_time = datetime.now()
                 download_wget(url, accept, reject)
 
             except KeyboardInterrupt:
@@ -846,7 +846,7 @@ def ydl(url):
         else:
             try:
                 url = input("\nPlease enter the Url:\n")
-                start_time = datetime.datetime.now()
+                start_time = datetime.now()
                 ydl_extractor(url)
 
             except KeyboardInterrupt:
@@ -1440,6 +1440,6 @@ def download_aria2c_magnet(content, dir):
 # - - - - - # - - - - - # - - - - - # - - - - - # main
 if __name__ == "__main__":
     global start_time
-    start_time = datetime.datetime.now()
+    start_time = datetime.now()
 
     main()
