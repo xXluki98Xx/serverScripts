@@ -14,6 +14,7 @@ import time
 import urllib.request
 from datetime import datetime
 from pathlib import Path
+import shutil
 
 import bs4
 import click
@@ -120,7 +121,29 @@ def func_convertFilesFfmpeg(fileName, newFormat, subPath, vcodec, acodec):
             output = output + '.' + newFormat
 
             if vcodec != "":
-                ffmpeg.input(fileName).output(output, vcodec=vcodec, acodec=acodec, map='0').run()
+                try:
+                    ffmpeg.input(fileName).output(output, vcodec=vcodec, acodec=acodec, map='0').run()
+                except:
+                    # Posible data lose
+                    swapFile = newFile + '.' + newFormat
+                    
+                    if booleanVerbose:
+                        print('originalFile: ' + fileName)
+                        print('swapFile: ' + swapFile)
+                        print('output: ' + output)
+                    
+                    os.remove(output)
+                    
+                    try:
+                        ffmpeg.input(fileName).output(swapFile).run()
+                        ffmpeg.input(swapFile).output(output, vcodec=vcodec, acodec=acodec, map='0').run()
+                    except:
+                        os.mkdir('broken')
+                        shutil.move(fileName, 'broken' + fileName)
+                        os.remove(swapFile)
+                        os.remove(output)
+
+                    os.remove(swapFile)
             else:
                 ffmpeg.input(fileName).output(output).run()
 
