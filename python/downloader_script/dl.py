@@ -1025,21 +1025,21 @@ def host_default(content, title, stringReferer, directory):
 
                 filename = getTitleFormated(filename)
 
-                output = '-f best --no-playlist -o "{title}.%(ext)s"'.format(title = filename)
-                return download_ydl(content, parameters, output, stringReferer, directory)
+                output = '-f best --no-playlist -o "{dir}/{title}.%(ext)s"'.format(title = filename, dir = directory)
+                return download_ydl(content, parameters, output, stringReferer)
             else:
                 filename = getTitleFormated(title)
 
-                output = '-f best --no-playlist -o "{title}.%(ext)s"'.format(title = filename)
-                return download_ydl(content, parameters, output, stringReferer, directory)
+                output = '-f best --no-playlist -o "{dir}/{title}.%(ext)s"'.format(title = filename, dir = directory)
+                return download_ydl(content, parameters, output, stringReferer)
 
         except:
-            output = '-f best --no-playlist -o "%(title)s.%(ext)s"'
-            return download_ydl(content, parameters, output, stringReferer, directory)
+            output = '-f best --no-playlist -o "{dir}/%(title)s.%(ext)s"'.format(dir = directory)
+            return download_ydl(content, parameters, output, stringReferer)
 
     else:
-        output = '-i -f best -o "%(extractor)s--%(playlist_uploader)s_%(playlist_title)s/%(playlist_index)s_%(title)s.%(ext)s"'
-        return download_ydl(content, parameters, output, stringReferer, directory)
+        output = '-i -f best -o "{dir}/%(extractor)s--%(playlist_uploader)s_%(playlist_title)s/%(playlist_index)s_%(title)s.%(ext)s"'.format(dir = directory)
+        return download_ydl(content, parameters, output, stringReferer)
 
 
 # ----- # ----- # fruithosted, oloadcdn, verystream, vidoza, vivo,
