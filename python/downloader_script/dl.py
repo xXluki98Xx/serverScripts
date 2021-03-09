@@ -154,9 +154,11 @@ def func_convertFilesFfmpeg(fileName, newFormat, subPath, vcodec, acodec):
 
             Path(output).chmod(stat.S_IMODE(os.lstat(fileName).st_mode))
             os.chown(output, pwd.getpwnam(Path(fileName).owner()).pw_uid, grp.getgrnam(Path(fileName).group()).gr_gid)
+
+        except KeyboardInterrupt:
+            sys.exit()
         except:
             print("\nerror at func_convertFilesFfmpeg: " + str(sys.exc_info()))
-
 
 # ----- # ----- #
 def func_convertDirFiles(path, newformat, subpath, vcodec, acodec):
@@ -678,7 +680,7 @@ def convertFiles(newformat, path, subpath, ffmpeg, vcodec, acodec):
 # arguments
 @click.argument("url", nargs=1)
 
-def aria2c(url, file, dir, chunck_size, reverse):
+def dandc(url, file, dir, chunck_size, reverse):
     if not os.path.isfile(file):
         getLinkList(url, file)
 
@@ -1418,13 +1420,16 @@ def download_aria2c(content, dir):
     except:
         print("error at aria2 download: " + str(sys.exc_info()))
 
-    
+
 def download_aria2c_magnet(content, dir):
     try:
         dl = 'aria2c --seed-time=0'
 
         if dir != "":
             dl += ' --dir="{}"'.format(dir)
+
+        if floatBandwidth != "0":
+            dl += " --max-overall-download-limit={}".format(floatBandwidth)
 
         dl += ' "{}"'.format(content)
 
