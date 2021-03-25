@@ -91,14 +91,18 @@ def func_replace(filePath, old, new):
 def func_convertFilesFfmpeg(fileName, newFormat, subPath, vcodec, acodec, fix):
     if fileName.find('.') != -1:
 
+        prePath = fileName.rsplit('/', 1)[0] + '/'
+
         fileOrig = fileName.rsplit('/', 1)[1]
-        fileSource = fileOrig
         fileTarget = ''
-        fileFix = 'fix/' + fileOrig
+        fileSource = prePath + fileOrig
+
+        pathAbort = prePath + 'abort/'
+        pathFix = prePath + 'fix/'
 
         try:
             output = ""
-            newFile = fileSource.rsplit(".", 1)[0]
+            newFile = fileOrig.rsplit(".", 1)[0]
 
             if '/' in newFile:
                 path, title = newFile.rsplit('/', 1)
@@ -128,49 +132,49 @@ def func_convertFilesFfmpeg(fileName, newFormat, subPath, vcodec, acodec, fix):
             if booleanVerbose:
                 print('\noriginalFile: ' + fileOrig)
                 print('output: ' + fileTarget)
-                print('fix: ' + str(fix)+'\n')
+                print('fix: ' + str(not fix)+'\n')
 
-            if os.path.isfile(fileTarget):
+            if os.path.isfile(prePath + fileTarget):
                 print('file exist already, move original to abort folder')
 
-                if not os.path.isdir('abort'):
-                    os.mkdir('abort')
+                if not os.path.isdir(pathAbort):
+                    os.mkdir(pathAbort)
 
                 try:
-                    shutil.move(fileOrig, 'abort/' + fileOrig)
+                    shutil.move(prePath + fileOrig, pathAbort + fileOrig)
                 except:
                     pass
 
                 return
             
-            if fix:
+            if not fix:
                 try:
                     if booleanVerbose:
                         print('\nfixing')
-                        print('fileOrig: ' + fileOrig)
-                        print('fileFix: '+ fileFix)
-                        print('exist?: ' + str(os.path.isfile(fileFix))+'\n')
+                        print('fileOrig: ' + prePath + fileOrig)
+                        print('fileFix: '+ pathFix + fileOrig)
+                        print('exist?: ' + str(os.path.isfile(pathFix + fileOrig))+'\n')
 
-                    if not os.path.isdir('fix'):
-                        os.mkdir('fix')
+                    if not os.path.isdir(pathFix):
+                        os.mkdir(pathFix)
 
-                    ffmpeg.input(fileOrig).output(fileFix, vcodec='copy', acodec='copy', map='0', **{'bsf:v': 'mpeg4_unpack_bframes'}).run()
+                    ffmpeg.input(prePath + fileOrig).output(pathFix + fileOrig, vcodec='copy', acodec='copy', map='0', **{'bsf:v': 'mpeg4_unpack_bframes'}).run()
 
                 except KeyboardInterrupt:
                     os._exit(1)
 
                 except:
                     try:
-                        os.remove(fileFix)
+                        os.remove(pathFix + fileOrig)
                     except:
                         pass
 
-            if os.path.isfile('fix/' + fileOrig):
-                fileSource = 'fix/' + fileOrig
+            if os.path.isfile(pathFix + fileOrig):
+                fileSource = pathFix + fileOrig
 
             if vcodec != "":
                 try:
-                    ffmpeg.input(fileSource).output(fileTarget, vcodec=vcodec, acodec=acodec, map='0').run()
+                    ffmpeg.input(fileSource).output(prePath + fileTarget, vcodec=vcodec, acodec=acodec, map='0').run()
 
                 except KeyboardInterrupt:
                     os._exit(1)
@@ -184,43 +188,44 @@ def func_convertFilesFfmpeg(fileName, newFormat, subPath, vcodec, acodec, fix):
                     if booleanVerbose:
                         print('swapFile: ' + fileSwap)
                     
-                    os.remove(fileTarget)
+                    os.remove(prePath + fileTarget)
                     
                     try:
-                        ffmpeg.input(fileSource).output(fileSwap).run()
-                        ffmpeg.input(fileSwap).output(fileTarget, vcodec=vcodec, acodec=acodec, map='0').run()
+                        ffmpeg.input(prePath + fileSource).output(prePath + fileSwap).run()
+                        ffmpeg.input(prePath + fileSwap).output(prePath + fileTarget, vcodec=vcodec, acodec=acodec, map='0').run()
                     except:
                         print('broken file: ' + title)
 
-                        if not os.path.isdir('abort'):
-                            os.mkdir('abort')
+                        if not os.path.isdir(pathAbort):
+                            os.mkdir(pathAbort)
                         
-                        shutil.move(fileOrig, 'abort/' + fileOrig)
-                        os.remove(fileSwap)
-                        os.remove(fileTarget)
+                        shutil.move(prePath + fileOrig, fileAbort)
+                        os.remove(prePath + fileSwap)
+                        os.remove(prePath + fileTarget)
 
-                    os.remove(fileSwap)
+                    os.remove(prePath + fileSwap)
 
             else:
                 try:
-                    ffmpeg.input(fileSource).output(fileTarget).run()
+                    ffmpeg.input(prePath + fileSource).output(prePath + fileTarget).run()
 
                 except KeyboardInterrupt:
                     os._exit(1)
 
             if booleanVerbose:
-                print("\nPermissions: " + oct(stat.S_IMODE(os.lstat(fileOrig).st_mode)))
-                print("owner: " + Path(fileOrig).owner() + ' | ' + str(pwd.getpwnam(Path(fileOrig).owner()).pw_uid))
-                print("group: " + Path(fileOrig).group() + ' | ' + str(grp.getgrnam(Path(fileOrig).group()).gr_gid)+'\n')
+                print("\nPermissions: " + oct(stat.S_IMODE(os.lstat(prePath + fileOrig).st_mode)))
+                print("owner: " + Path(prePath + fileOrig).owner() + ' | ' + str(pwd.getpwnam(Path(prePath + fileOrig).owner()).pw_uid))
+                print("group: " + Path(prePath + fileOrig).group() + ' | ' + str(grp.getgrnam(Path(prePath + fileOrig).group()).gr_gid)+'\n')
 
-            Path(fileTarget).chmod(stat.S_IMODE(os.lstat(fileOrig).st_mode))
-            os.chown(fileTarget, pwd.getpwnam(Path(fileOrig).owner()).pw_uid, grp.getgrnam(Path(fileOrig).group()).gr_gid)
+            Path(prePath + fileTarget).chmod(stat.S_IMODE(os.lstat(prePath + fileOrig).st_mode))
+            os.chown(prePath + fileTarget, pwd.getpwnam(Path(prePath + fileOrig).owner()).pw_uid, grp.getgrnam(Path(prePath + fileOrig).group()).gr_gid)
 
         except KeyboardInterrupt:
             os._exit(1)
 
         except:
             print("\nerror at func_convertFilesFfmpeg: " + str(sys.exc_info()))
+
 
 # ----- # ----- #
 def func_convertDirFiles(path, newformat, subpath, vcodec, acodec, fix):
@@ -255,9 +260,6 @@ def func_convertDirFiles(path, newformat, subpath, vcodec, acodec, fix):
                 continue
 
             if d == 'abort':
-                continue
-
-            if d == subpath:
                 continue
 
             nextPath = os.path.join(paths, d)
@@ -325,6 +327,10 @@ def func_formatingFilename(text):
     swap = re.sub(reg3, "§", swap)
     swap = swap.replace("--", "-")
     swap = swap.replace("§", "---")
+
+    if any(ext in swap for ext in extensionsList):
+        fileSwap = swap.rsplit(".",1)
+        swap = getTitleFormated(fileSwap[0]) + '.' + fileSwap[1]
 
     return swap
 
@@ -700,7 +706,7 @@ def replace(replace, old, new):
 
 # switch
 @click.option("-f", "--ffmpeg", default=False, is_flag=True, help="ffmpeg")
-@click.option("--fix", default=False, is_flag=True, help="fixing")
+@click.option("--no-fix", default=False, is_flag=True, help="fixing")
 
 # string
 @click.option("-sp", "--subpath", default="", help="Path which will contain the new Files")
@@ -711,7 +717,7 @@ def replace(replace, old, new):
 @click.argument("newformat", nargs=1)
 @click.argument("path", nargs=-1)
 
-def convertFiles(newformat, path, subpath, ffmpeg, vcodec, acodec, fix):
+def convertFiles(newformat, path, subpath, ffmpeg, vcodec, acodec, no_fix):
     if ffmpeg:
         try:
             for itemPath in path:
@@ -723,13 +729,13 @@ def convertFiles(newformat, path, subpath, ffmpeg, vcodec, acodec, fix):
                 if os.path.isfile(itemPathComplete):
                     if booleanVerbose:
                         print("is File: " + str(os.path.isfile(itemPathComplete)))
-                    func_convertFilesFfmpeg(itemPathComplete, newformat, subpath, vcodec, acodec, fix)
+                    func_convertFilesFfmpeg(itemPathComplete, newformat, subpath, vcodec, acodec, no_fix)
 
 
                 if os.path.isdir(itemPathComplete):
                     if booleanVerbose:
                         print("is Dir: " + str(os.path.isdir(itemPathComplete)))
-                    func_convertDirFiles(itemPathComplete, newformat, subpath, vcodec, acodec, fix)
+                    func_convertDirFiles(itemPathComplete, newformat, subpath, vcodec, acodec, no_fix)
 
         except:
             print("\nerror at convertFiles ffmpeg: " + str(sys.exc_info()))
