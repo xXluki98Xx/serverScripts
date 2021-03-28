@@ -112,16 +112,22 @@ def func_convertFilesFfmpeg(fileName, newFormat, subPath, vcodec, acodec, fix):
                 title = getTitleFormated(newFile)
 
             if subPath:
+                if booleanVerbose:
+                    print('create subPath')
+                    print('subPath: ' + subPath)
+                    print('newFile: ' + newFile)
+                    print('subPath: ' + str(prePath + '/' + subPath))
+
                 if "/" in newFile:
-                    path = path + "/" + subPath
+                    path = prePath + "/" + subPath
 
                     if not os.path.exists(path):
                         os.makedirs(path)
 
                     output = path + "/" + title
                 else:
-                    if not os.path.exists(subPath):
-                        os.makedirs(subPath)
+                    if not os.path.exists(prePath + '/' + subPath):
+                        os.makedirs(prePath + '/' + subPath)
 
                     output = subPath + "/" + title
             else:
