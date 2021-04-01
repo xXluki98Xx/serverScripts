@@ -737,7 +737,8 @@ def replace(replace, old, new):
 
 # switch
 @click.option("-f", "--ffmpeg", default=False, is_flag=True, help="ffmpeg")
-@click.option("--no-fix", default=False, is_flag=True, help="fixing")
+@click.option("-nf", "--no-fix", default=False, is_flag=True, help="fixing")
+@click.option("-nr", "--no-renaming", default=False, is_flag=True, help="Directories Rename?")
 
 # string
 @click.option("-sp", "--subpath", default="", help="Path which will contain the new Files")
@@ -748,7 +749,7 @@ def replace(replace, old, new):
 @click.argument("newformat", nargs=1)
 @click.argument("path", nargs=-1)
 
-def convertFiles(newformat, path, subpath, ffmpeg, vcodec, acodec, no_fix):
+def convertFiles(newformat, path, subpath, ffmpeg, vcodec, acodec, no_fix, no_renaming):
     if ffmpeg:
         try:
             for itemPath in path:
@@ -767,6 +768,13 @@ def convertFiles(newformat, path, subpath, ffmpeg, vcodec, acodec, no_fix):
                     if booleanVerbose:
                         print("is Dir: " + str(os.path.isdir(itemPathComplete)))
                     func_convertDirFiles(itemPathComplete, newformat, subpath, vcodec, acodec, no_fix)
+
+                    if not no_renaming:
+                        try:
+                            os.rename(itemPath, func_formatingDirectories(itemPath))
+                        except:
+                            pass
+
 
         except:
             print("\nerror at convertFiles ffmpeg: " + str(sys.exc_info()))
