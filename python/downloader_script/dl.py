@@ -95,41 +95,33 @@ def func_convertFilesFfmpeg(fileName, newFormat, subPath, vcodec, acodec, fix):
 
         fileOrig = fileName.rsplit('/', 1)[1]
         fileTarget = ''
-        fileSource = prePath + fileOrig
+        sourceFile = prePath + fileOrig
 
         pathAbort = prePath + 'abort/'
         pathFix = prePath + 'fix/'
+        pathSwap = prePath + 'swap/'
+        pathFinish = prePath + 'orig/'
 
         try:
             output = ""
             newFile = fileOrig.rsplit(".", 1)[0]
-
-            if '/' in newFile:
-                path, title = newFile.rsplit('/', 1)
-                title = getTitleFormated(title)
-
-            else:
-                title = getTitleFormated(newFile)
+            title = getTitleFormated(newFile)
 
             if subPath:
                 if booleanVerbose:
-                    print('create subPath')
+                    print('\ncreate subPath')
                     print('subPath: ' + subPath)
                     print('newFile: ' + newFile)
-                    print('subPath: ' + str(prePath + '/' + subPath))
+                    print('subPath: ' + str(prePath + subPath))
+                    print('subPath exist: ' + str(os.path.exists(prePath + subPath)))
 
-                if "/" in newFile:
-                    path = prePath + "/" + subPath
+                path = prePath + subPath
 
-                    if not os.path.exists(path):
-                        os.makedirs(path)
+                if not os.path.exists(path):
+                    os.makedirs(path)
 
-                    output = path + "/" + title
-                else:
-                    if not os.path.exists(prePath + '/' + subPath):
-                        os.makedirs(prePath + '/' + subPath)
+                output = subPath + "/" + title
 
-                    output = subPath + "/" + title
             else:
                 output = title
 
@@ -141,7 +133,7 @@ def func_convertFilesFfmpeg(fileName, newFormat, subPath, vcodec, acodec, fix):
                 print('fix: ' + str(not fix)+'\n')
 
             if os.path.isfile(prePath + fileTarget):
-                print('file exist already, move original to abort folder')
+                print('\nfile exist already, move original to abort folder')
 
                 if not os.path.isdir(pathAbort):
                     os.mkdir(pathAbort)
@@ -159,7 +151,7 @@ def func_convertFilesFfmpeg(fileName, newFormat, subPath, vcodec, acodec, fix):
                         print('\nfixing')
                         print('fileOrig: ' + prePath + fileOrig)
                         print('fileFix: '+ pathFix + fileOrig)
-                        print('exist?: ' + str(os.path.isfile(pathFix + fileOrig))+'\n')
+                        print('exist?: ' + str(os.path.isfile(pathFix + fileOrig)) + '\n')
 
                     if not os.path.isdir(pathFix):
                         os.mkdir(pathFix)
@@ -170,73 +162,112 @@ def func_convertFilesFfmpeg(fileName, newFormat, subPath, vcodec, acodec, fix):
                     os._exit(1)
 
                 except:
+                    print("\nerror at func_convertFilesFfmpeg at fixing: " + str(sys.exc_info()) + '\n')
                     try:
                         os.remove(pathFix + fileOrig)
                     except:
                         pass
 
             if os.path.isfile(pathFix + fileOrig):
-                fileSource = pathFix + fileOrig
+                sourceFile = pathFix + fileOrig
 
             if vcodec != "":
                 try:
-                    ffmpeg.input(fileSource).output(prePath + fileTarget, vcodec=vcodec, acodec=acodec, map='0').run()
+                    ffmpeg.input(sourceFile).output(prePath + fileTarget, vcodec=vcodec, acodec=acodec, map='0').run()
 
                 except KeyboardInterrupt:
                     os._exit(1)
 
                 except:
-                    print("\nerror at func_convertFilesFfmpeg with vcodec: " + str(sys.exc_info()))
+                    print("\nerror at func_convertFilesFfmpeg with vcodec first try: " + str(sys.exc_info()) + '\n')
 
                     # Posible data lose
                     fileSwap = newFile + '.' + newFormat
                     
                     if booleanVerbose:
-                        print('swapFile: ' + fileSwap)
-                    
+                        print('\nswapFile: ' + fileSwap)
+                        print('fileTarget: ' + fileTarget + '\n')
+
                     os.remove(prePath + fileTarget)
                     
+                    if not os.path.isdir(pathSwap):
+                        os.mkdir(pathSwap)
+
                     try:
-                        ffmpeg.input(prePath + fileSource).output(prePath + fileSwap).run()
-                        ffmpeg.input(prePath + fileSwap).output(prePath + fileTarget, vcodec=vcodec, acodec=acodec, map='0').run()
+                        ffmpeg.input(sourceFile).output(pathSwap + fileSwap, map='0', scodec='copy').run()
+                        ffmpeg.input(pathSwap + fileSwap).output(prePath + fileTarget, map='0', vcodec=vcodec, acodec=acodec, scodec='copy').run()
+
                     except:
-                        print('broken file: ' + title)
+                        print("\nerror at func_convertFilesFfmpeg with vcodec second try with swapping: " + str(sys.exc_info()) + '\n')
+                        print('\nbroken file: ' + sourceFile + '\n')
 
-                        if not os.path.isdir(pathAbort):
-                            os.mkdir(pathAbort)
-                        
-                        shutil.move(prePath + fileOrig, fileAbort)
-                        os.remove(prePath + fileSwap)
-                        os.remove(prePath + fileTarget)
+                        try:
+                            if booleanVerbose:
+                                print('\npathAbort: ' + pathAbort)
+                                print('fileOrig: ' + prePath+fileOrig)
+                                print('swapFile: ' + prePath+fileSwap)
+                                print('fileTarget: ' + prePath+fileTarget + '\n')
 
-                    os.remove(prePath + fileSwap)
+                            if not os.path.isdir(pathAbort):
+                                os.mkdir(pathAbort)
+                            
+                            shutil.move(prePath + fileOrig, pathAbort + fileOrig)
+
+                            # os.remove(prePath + fileSwap)
+                            # os.remove(prePath + fileTarget)
+                        except:
+                            print("\nerror at func_convertFilesFfmpeg with vcodec second try with swapping at swap removing: " + str(sys.exc_info()) + '\n')
+
 
             else:
                 try:
-                    ffmpeg.input(prePath + fileSource).output(prePath + fileTarget).run()
+                    print('\nfileTarget: ' + fileTarget + '\n')
+                    ffmpeg.input(sourceFile).output(prePath + fileTarget).run()
 
                 except KeyboardInterrupt:
                     os._exit(1)
+                
+                except:
+                    print("\nerror at func_convertFilesFfmpeg at simple converting: " + str(sys.exc_info()) + '\n')
 
             if booleanVerbose:
                 print("\nPermissions: " + oct(stat.S_IMODE(os.lstat(prePath + fileOrig).st_mode)))
                 print("owner: " + Path(prePath + fileOrig).owner() + ' | ' + str(pwd.getpwnam(Path(prePath + fileOrig).owner()).pw_uid))
                 print("group: " + Path(prePath + fileOrig).group() + ' | ' + str(grp.getgrnam(Path(prePath + fileOrig).group()).gr_gid)+'\n')
 
+            print('\nchanging permission on: ' + prePath+fileTarget)
             Path(prePath + fileTarget).chmod(stat.S_IMODE(os.lstat(prePath + fileOrig).st_mode))
             os.chown(prePath + fileTarget, pwd.getpwnam(Path(prePath + fileOrig).owner()).pw_uid, grp.getgrnam(Path(prePath + fileOrig).group()).gr_gid)
+
+            try:
+                if booleanVerbose:
+                    print('\npathFinish: ' + pathFinish)
+                    print('sourceFile: ' + sourceFile)
+                    print('origFile: ' + prePath + fileOrig + '\n')
+
+                if not os.path.isdir(pathFinish):
+                    os.mkdir(pathFinish)
+                
+                shutil.move(prePath + fileOrig, pathFinish + fileOrig)
+            except:
+                print('\nerror at func_convertFilesFfmpeg finish at orig directory')
+
 
         except KeyboardInterrupt:
             os._exit(1)
 
         except:
-            print("\nerror at func_convertFilesFfmpeg: " + str(sys.exc_info()))
+            print("\nerror at func_convertFilesFfmpeg: " + str(sys.exc_info()) + '\n')
 
 
 # ----- # ----- #
 def func_convertDirFiles(path, newformat, subpath, vcodec, acodec, fix):
     try:
         paths, dirs, files = next(os.walk(path))
+
+        pathList = [
+            'fix', 'abort', 'swap', 'orig', subpath,
+        ]
 
         if booleanVerbose:
             print("\nconvertDirFiles\npath: " + path)
@@ -256,16 +287,10 @@ def func_convertDirFiles(path, newformat, subpath, vcodec, acodec, fix):
             func_convertFilesFfmpeg(filePath, newformat, subpath, vcodec, acodec, fix)
 
         for d in dirs:
-            if d == subpath:
-                continue
-
             if d.startswith('.'):
                 continue
 
-            if d == 'fix':
-                continue
-
-            if d == 'abort':
+            if any(paths in d for paths in pathList):
                 continue
 
             nextPath = os.path.join(paths, d)
