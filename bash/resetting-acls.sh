@@ -3,8 +3,12 @@
 # dir loops: https://stackoverflow.com/questions/2107945/how-to-loop-over-directories-in-linux
 # acls : https://www.commandlinefu.com/commands/view/4281/copy-acl-of-one-file-to-another-using-getfacl-and-setfacl
 
+oldPath=$(pwd)
+
 # Storage disk
 path='/srv/'
+
+cd $path
 
 # looping over the dirs
 for curDir in ${path}*/
@@ -17,3 +21,5 @@ do
     # pipe current conf to set function
     getfacl "${dir##*/}" | setfacl -R --set-file=- "${dir##*/}"
 done
+
+cd $oldPath
