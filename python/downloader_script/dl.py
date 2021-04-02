@@ -83,6 +83,7 @@ def getEchoList(stringList):
 @click.option('-nr', '--no-remove', default=False, is_flag=True, help='remove Files at wget')
 @click.option('-up', '--update-packages', default=False, is_flag=True, help='updates packages listed in requirements.txt')
 @click.option('-sy', '--sync', default=False, is_flag=True, help='')
+@click.option('-v', '--verbose', default=False, is_flag=True, help='Verbose mode')
 
 # int
 @click.option('--retries', default=5, help='Enter an Number for Retries')
@@ -96,9 +97,10 @@ def getEchoList(stringList):
 @click.option('-dl','--dub-lang', default='', help='Enter language Code (de / en)')
 @click.option('-d', '--debug', default='INFO', help='Using Logging mode')
 
-def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file, sub_lang, dub_lang, playlist, no_remove, update_packages, debug, sync):
+def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file, sub_lang, dub_lang, playlist, no_remove, update_packages, debug, sync, verbose):
     global dto
     dto = dto()
+    dto.setVerbose(verbose)
     dto.setLogger(debug)
 
     dto.setBandwidth(bandwidth)
@@ -127,6 +129,7 @@ def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file, sub_lang, 
 # string
 @click.option('-os', '--offset', default=0, help='String Offset')
 @click.option('-c', '--cut', default=0, help='Cut String')
+@click.option('-p', '--platform', default='', help='Platform')
 
 # switch
 @click.option('-cr', '--crunchyroll', default=False, is_flag=True, help='syntax Crunchyroll')
@@ -135,12 +138,10 @@ def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file, sub_lang, 
 # arguments
 @click.argument('rename', nargs=-1)
 
-def rename(rename, offset, cut, crunchyroll, single):
+def rename(rename, offset, cut, platform, single):
     dto.setSingle(single)
 
-    platform = ''
-
-    if crunchyroll:
+    if platform:
         platform = 'crunchyroll'
 
     for itemPath in rename:
@@ -564,7 +565,7 @@ def download_wget(dto, content, accept, reject):
                         time.sleep(timer)
 
                         if i == 3:
-                            dto.publishLoggerInfo('the was the Command: %s' % wget)
+                            dto.publishLoggerInfo('the Command was: %s' % wget)
                             os.system('echo "{wget}" >> dl-error-wget.txt'.format(wget = content))
                             return returned_value
 
@@ -625,7 +626,7 @@ def download_ydl(dto, content, parameters, output, stringReferer):
                 time.sleep(timer)
 
                 if i == 3:
-                    dto.publishLoggerInfo('The was the Command: %s' % ydl)
+                    dto.publishLoggerInfo('the Command was: %s' % ydl)
                     os.system('echo "{url}" >> dl-error-ydl.txt'.format(url = content))
                     return returned_value
             else:
@@ -671,7 +672,7 @@ def download_aria2c(dto, content, dir):
                     time.sleep(timer)
 
                     if i == 3:
-                        dto.publishLoggerInfo('The was the Command: %s' % dl)
+                        dto.publishLoggerInfo('the Command was: %s' % dl)
                         for item in content:
                             os.system('echo "{url}" >> dl-error-aria2.txt'.format(url = item))
                         return returned_value
@@ -718,9 +719,9 @@ def download_aria2c_magnet(dto, content, dir):
                     time.sleep(timer)
 
                     if i == 3:
-                        dto.publishLoggerInfo('The was the Command: %s' % dl)
+                        dto.publishLoggerInfo('the Command was: %s' % dl)
                         for item in content:
-                             os.system('echo "{url}" >> dl-error-aria2-magnet.txt'.format(url = content))
+                             os.system('echo "{url}" >> dl-error-aria2-magnet.txt'.format(url = item))
                         return returned_value
 
             else:

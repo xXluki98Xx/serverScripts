@@ -159,16 +159,20 @@ class dto():
 
         if not logger.handlers:
             logger.setLevel(self.logger_level) # better to have too much log than not enough
-            logger.addHandler(self.get_console_handler())
             logger.addHandler(self.get_file_handler())
+            
+            if self.getVerbose():
+                logger.addHandler(self.get_console_handler())
             
         else:
             for h in logger.handlers:
                 logger.removeHandler(h)
 
             logger.setLevel(self.logger_level) # better to have too much log than not enough
-            logger.addHandler(self.get_console_handler())
             logger.addHandler(self.get_file_handler())
+
+            if self.getVerbose():
+                logger.addHandler(self.get_console_handler())
 
         # with this pattern, it's rarely necessary to propagate the error up to parent
         logger.propagate = False

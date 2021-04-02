@@ -432,9 +432,15 @@ def func_convertFilesFfmpeg(dto, fileName, newFormat, subPath, vcodec, acodec, f
             except:
                 dto.publishLoggerInfo('error at func_convertFilesFfmpeg finish at orig directory')
 
-
         except KeyboardInterrupt:
             os._exit(1)
 
         except:
             dto.publishLoggerInfo('error at func_convertFilesFfmpeg: ' + str(sys.exc_info()))
+
+        finally:
+            if os.path.isdir(pathSwap):
+                shutil.rmtree(pathSwap)
+
+            if os.path.isdir(pathFix):
+                shutil.rmtree(pathFix)
