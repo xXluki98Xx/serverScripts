@@ -5,21 +5,24 @@
 
 oldPath=$(pwd)
 
-# Storage disk
-path='/srv/'
+# Storage disk = ('/dev/test' '/srv/')
+rFolder=('')
 
-cd $path
-
-# looping over the dirs
-for curDir in ${path}*/
+# loop for multiple Directories
+for Folder in ${rFolder[@]}
 do
-    # remove the trailing "/"
-    dir=${curDir%*/}
-    echo "changing directory ${curDir}"
+    cd $Folder
 
-    # cuts everything after the final "/"
-    # pipe current conf to set function
-    getfacl "${dir##*/}" | setfacl -R --set-file=- "${dir##*/}"
+    # looping over the dirs
+    for curDir in ${Folder}/*/
+    do
+        # remove the trailing "/"
+        dir=${curDir%*/}
+        echo "changing directory ${curDir}"
+
+        # cuts everything after the final "/"
+        # pipe current conf to set function
+        getfacl "${dir##*/}" | setfacl -R --set-file=- "${dir##*/}"
+    done
 done
-
 cd $oldPath
