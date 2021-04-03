@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import logging
 import sys
 from datetime import datetime
@@ -82,12 +80,12 @@ class dto():
         self.logger_level = getattr(logging, self.string_logging.upper(), 'info')
 
         if not isinstance(self.logger_level, int):
-            raise ValueError('Invalid log level: %s' % log_level)
+            raise ValueError('Invalid log level: %s' % self.logger_level)
         
         return self.get_logger()
 
     def getLogging(self):
-        return self.string_cookiefile
+        return self.string_logging
     def setLogging(self, swap):
         self.string_logging = swap
 

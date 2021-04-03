@@ -1,310 +1,209 @@
-#!/usr/bin/env python3
-
 import logging
+import random
+import time
 import urllib.request
 
 import youtube_dl
 
-from dl import download_aria2c_magnet, download_wget, download_ydl
 from functions import *
 from ioutils import *
 
 
 # ----- # ----- #
-def getLanguage(dto, platform):
-    output = '--no-mark-watched --hls-prefer-ffmpeg --socket-timeout 30 '
-
-    if platform == 'crunchyroll':
-        if dto.getSubLang() == 'de': return output + '-f "best[format_id*=adaptive_hls-audio-jpJP-hardsub-deDE]"'
-        if dto.getDubLang() == 'de': return output + '-f "best[format_id*=adaptive_hls-audio-deDE][format_id!=hardsub]"'
-
-
-def getUserCredentials(dto, platform):
-    credentialList = ['animeondemand', 'udemy']
-
-    if platform in credentialList:
-        if platform == 'animeondemand':
-            for p in dto.getData()['animeondemand']:
-                parameter = '-u ' + p['username'] + ' -p ' + p['password'] + ' ' + dto.getParameters()
-
-        if platform == 'udemy':
-            for p in dto.getData()['udemy']:
-                parameter = '-u ' + p['username'] + ' -p ' + p['password'] + ' ' + dto.getParameters()
-
-    if dto.getCookieFile():
-        parameter = '--cookies ' + dto.getCookieFile() + ' ' + dto.getParameters()
-
-    return parameter
+def getEchoList(stringList):
+    listString = ''
+    for item in stringList:
+        if item.startswith('#') or item == '':
+            continue
+        listString +=('%s\n' % item)
+    return listString
 
 
 # ----- # ----- #
-def ydl_extractor(dto, content):
-    title = ''
-    stringReferer = ''
-    directory = '.'
+def download_wget(dto, content, accept, reject):
+    dto.publishLoggerDebug('download wget')
 
     try:
-        (url, title, stringReferer, directory) = content.split(';')
-    except ValueError:
-        try:
-            (url, title, stringReferer) = content.split(';')            
-        except ValueError:
-            try:
-                (url, title) = content.split(';')
-            except ValueError:
-                url = content
-
-    if ('magnet:?xt=urn:btih' in content):
-        try:
-            (url, directory) = content.split(';')
-        except ValueError:
-            url = content
+        if ';' in content:
+            swap = content.split(';')
+            content = swap[0]
+            directory = swap[1]
+            title = swap[2]
+        else:
             directory = ''
-
-        return download_aria2c_magnet(url, directory)
-
-    webpageResult = testWebpage(dto, url.split('?')[0])
-    if webpageResult != 0:
-        return webpageResult
-
-    mostly = ['fruithosted', 'oloadcdn', 'verystream', 'vidoza', 'vivo']
-
-    dto.publishLoggerInfo('current Download: ' + url)
-
-    for domain in mostly:
-        if domain in url : return host_mostly(dto, url, title, stringReferer, directory)
-
-    if ('animeholics' in url) : return host_animeholics(dto, url, title, stringReferer, directory)
-
-    if ('haho.moe' in url) :
-        if (len(url.rsplit('/',1)[1]) < 3):
-            return host_hahomoe(dto, url, title, stringReferer, directory)
-        else:
-            i = 1
-            while testWebpage(dto, url+'/'+str(i)) == 0:
-                ydl_extractor(dto, url+'/'+str(i))
-                i += 1
-
-            i = 1
-            while testWebpage(dto, url+'/s'+str(i)) == 0:
-                ydl_extractor(dto, url+'/s'+str(i))
-                i += 1
-
-            return 0
-
-    if ('sxyprn' in url) : return host_sxyprn(dto, url, title, stringReferer, directory)
-    if ('porngo' in url) : return host_porngo(dto, url, title, stringReferer, directory)
-    if ('xvideos' in url) : return host_xvideos(dto, url, title, stringReferer, directory)
-
-    if ('udemy' in url) : return host_udemy(dto, url, title, stringReferer, directory)
-    if ('crunchyroll' in url) : return host_crunchyroll(dto, url, title, stringReferer, directory)
-    if ('anime-on-demand' in url) : return host_animeondemand(dto, url, title, stringReferer, directory)
-    if ('vimeo' in url) : return host_vimeo(dto, url, title, stringReferer, directory)
-    if ('cloudfront' in url) : return host_cloudfront(dto, url, title, stringReferer, directory)
-
-    return host_default(dto, url, title, stringReferer, directory)
-
-
-# - - - - - # - - - - - # - - - - - # - - - - - # media hoster
-
-# ----- # ----- # hosts
-def host_default(dto, content, title, stringReferer, directory):
-    if not dto.getPlaylist():
-
-        ydl_opts = {
-            'outtmpl': '%(title)s',
-            'restrictfilenames': True,
-            'forcefilename':True
-        }
-
-        try:
-            if title == '':
-                with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-                    info = ydl.extract_info(content, download = False)
-                    filename = ydl.prepare_filename(info)
-
-                    dto.publishLoggerDebug('extracted filename: ' + filename)
-
-                filename = getTitleFormated(filename)
-
-                output = '-f best --no-playlist -o "{dir}/{title}.%(ext)s"'.format(title = filename, dir = directory)
-                return download_ydl(dto, content, dto.getParameters(), output, stringReferer)
-            else:
-                filename = getTitleFormated(title)
-
-                output = '-f best --no-playlist -o "{dir}/{title}.%(ext)s"'.format(title = filename, dir = directory)
-                return download_ydl(dto, content, dto.getParameters(), output, stringReferer)
-
-        except:
-            output = '-f best --no-playlist -o "{dir}/%(title)s.%(ext)s"'.format(dir = directory)
-            return download_ydl(dto, content, dto.getParameters(), output, stringReferer)
-
-    else:
-        output = '-i -f best -o "{dir}/%(extractor)s--%(playlist_uploader)s_%(playlist_title)s/%(playlist_index)s_%(title)s.%(ext)s"'.format(dir = directory)
-        return download_ydl(dto, content, dto.getParameters(), output, stringReferer)
-
-
-# ----- # ----- # fruithosted, oloadcdn, verystream, vidoza, vivo,
-def host_mostly(dto, content, title, stringReferer, directory):
-    if title == '':
-        title = str(input('\nPlease enter the Title:\n'))
-
-    title = getTitleFormated(title)
-    output = '-f best -o "{dir}/{title}.%(ext)s"'.format(title = title, dir = directory)
-
-    return download_ydl(dto, content, dto.getParameters(), output, stringReferer)
-
-
-# ----- # ----- #
-def host_hanime(dto, content, title, stringReferer, directory):
-    if title == '':
-        title = content.rsplit('?',1)[0].rsplit('/',1)[1]
-
-    title = getTitleFormated(title)
-    output = '-f best -o "{dir}/{title}.%(ext)s"'.format(title = title, dir = directory)
-
-    return download_ydl(dto, content, dto.getParameters(), output, stringReferer)
-
-
-# ----- # ----- #
-def host_hahomoe(dto, content, title, stringReferer, directory):
-    url = content
-    webpage = ''
-
-    req = urllib.request.Request(url, headers = {'User-Agent': 'Mozilla/5.0'})
-    with urllib.request.urlopen(req) as response:
-        webpage = response.read()
-
-    urlRegex = re.compile('<source data-fluid-hd="" src="(.*?)" title="720p" type="video/mp4"></source>')
-    m = urlRegex.search(str(webpage))
-    if m:
-        url = m.group(1)
-
-    if title == '':
-        titleRegex = re.compile('<title>(.*?)</title>')
-        m = titleRegex.search(str(webpage))
-        if m:
-            title = m.group(1).rsplit(' ',4)[0]
-        else:
             title = ''
 
-    title = getTitleFormated(title)
-    output = '-f best -o "{dir}/{title}.mp4"'.format(title = title, dir = directory)
+        path = os.path.join(os.getcwd(),directory)
 
-    return download_ydl(dto, url, dto.getParameters(), output, stringReferer)
+        wget = 'wget -c -w 5 --random-wait --limit-rate={bw} -e robots=off'.format(bw = dto.getBandwidth())
 
+        if directory != '':
+            wget += ' -P {dir}'.format(dir = path)
 
-# ----- # ----- #
-def host_sxyprn(dto, content, title, stringReferer, directory):
-    url = content
-    webpage = ''
+        if title != '':
+            wget += ' -O {title}'.format(title = getTitleFormated(title))
 
-    req = urllib.request.Request(url, headers = {'User-Agent': 'Mozilla/5.0'})
-    with urllib.request.urlopen(req) as response:
-        webpage = response.read()
+        if accept != '':
+            wget += ' --accept {extention}'.format(extention = accept)
 
-    if title == '':
-        title = str(webpage).split('<title>')[1].split('</title>')[0]
-        title = title.rsplit('-', 1)[0]
-        title = title.casefold().replace(' ', '-').replace('.','').rsplit('-', 1)[0]
+        if reject != '':
+            wget += ' --reject {extention}'.format(extention = reject)
 
-        if '#' in title:
-            title = title.split('-#',1)[0]
+        # --no-http-keep-alive --no-clobber
 
-    title = getTitleFormated(title)
-    output = '-f best -o "{dir}/{title}.%(ext)s"'.format(title = title, dir = directory)
+        if dto.getSync():
+            wget = wget + ' -r -N -np -nd -nH'
 
-    return download_ydl(dto, content, dto.getParameters(), output, stringReferer)
+        wget += ' "{url}"'.format(url = content)
 
+        # file count
+        path, dirs, files = next(os.walk(path))
+        file_count_prev = len(files)
 
-# ----- # ----- #
-def host_xvideos(dto, content, title, stringReferer, directory):
-    if title == '':
-        title = content.rsplit('/',1)[1]
+        # dir size
+        dirSize = subprocess.check_output(['du','-s', path]).split()[0].decode('utf-8')
 
-    title = getTitleFormated(title)
-    output = '-f best -o "{dir}/{title}.mp4"'.format(title = title, dir = directory)
+        # free storage
+        freeStorage = shutil.disk_usage(path).free
 
-    return download_ydl(dto, content, dto.getParameters(), output, stringReferer)
+        try:
+            # file size
+            fileSize = subprocess.getoutput('wget "' + content + '" --spider --server-response -O - 2>&1| sed -ne "/Content-Length/{s/.*: //;p}"')
+            testSize = int(fileSize)
+        except:
+            testSize = dirSize
 
+        dto.publishLoggerDebug('wget command: ' + wget)
 
-# ----- # ----- #
-def host_porngo(dto, content, title, stringReferer, directory):
-    if title == '':
-        title = content.rsplit('/',1)[0].rsplit('/',1)[1]
+        if (int(freeStorage) >= int(testSize)):
 
-    title = getTitleFormated(title)
-    output = '-f best -o "{dir}/{title}.%(ext)s"'.format(title = title, dir = directory)
+            download(dto, wget, 'wget', content)
+            # i = 0
+            # returned_value = ''
 
-    return download_ydl(dto, content, dto.getParameters(), output, stringReferer)
+            # while i < 3:
+            #     returned_value = os.system('echo \'' + wget + '\' >&1 | bash')
 
+            #     if returned_value > 0:
+            #         if returned_value == 2048:
+            #             return returned_value
+            #         else:
+            #             dto.publishLoggerDebug('Error Code: ' + str(returned_value))
+            #             i += 1
+            #             timer = random.randint(200,1000)/100
+            #             dto.publishLoggerDebug('sleep for ' + str(timer) + 's')
+            #             time.sleep(timer)
 
-# - - - - - # - - - - - # - - - - - # - - - - - # Anime
+            #             if i == 3:
+            #                 dto.publishLoggerInfo('the Command was: %s' % wget)
+            #                 os.system('echo "{wget}" >> dl-error-wget.txt'.format(wget = content))
+            #                 return returned_value
 
-# # ----- # ----- #
-def host_animeondemand(dto, content, title, stringReferer, directory):
-    parameters = getUserCredentials(dto, 'animeondemand')
+            #     else:
+            #         if dto.getSpace():
+            #             func_removeFiles(dto, path, file_count_prev)
+            #         return returned_value
 
-    if 'www.' not in content:
-        swap = content.split('/', 2)
-        content = 'https://www.' + swap[2]
+        else:
+            dto.publishLoggerInfo('not enough space')
+            dto.publishLoggerInfo('Directory size: ' + bytes2human(int(dirSize)*1000))
+            dto.publishLoggerInfo('free Space: ' + bytes2human(freeStorage))
 
-    output = '-f "best[format_id*=ger-Dub]" -o "{dir}/%(playlist)s/episode-%(playlist_index)s.%(ext)s"'
+            if dto.getSpace():
+                func_removeFiles(dto, path, file_count_prev)
+            return 507
 
-    return download_ydl(dto, content, parameters, output, stringReferer)
+    except KeyboardInterrupt:
+        dto.publishLoggerInfo('Interupt by User')
+        os.system('echo "{wget}" >> dl-error-wget.txt'.format(wget = content))
+        os._exit(1)
 
-
-# ----- # ----- #
-def host_crunchyroll(dto, content, title, stringReferer, directory):
-    parameters = getUserCredentials(dto, 'crunchyroll')
-
-    if 'www.' not in content:
-        swap = content.split('/', 2)
-        content = 'https://www.' + swap[2]
-
-    output = str(getLanguage(dto, 'crunchyroll'))
-    output += ' -i -o "{dir}/%(playlist)s/season-%(season_number)s-episode-%(episode_number)s-%(episode)s.%(ext)s"'.format(dir = directory)
-
-    return download_ydl(dto, content, parameters, output, stringReferer)
-
-
-# - - - - - # - - - - - # - - - - - # - - - - - # platformen
-
-# ----- # ----- #
-def host_udemy(dto, content, title, stringReferer, directory):
-    parameters = getUserCredentials(dto, 'udemy')
-
-    title = content.split('/',4)[4].rsplit('/',5)[0]
-    url = 'https://www.udemy.com/' + title
-
-    dto.publishLoggerInfo('udemy url: ' + url)
-
-    output = '-f best -o "{dir}/%(playlist)s - {title}/%(chapter_number)s-%(chapter)s/%(playlist_index)s-%(title)s.%(ext)s"'.format(title = title, dir = directory)
-
-    return download_ydl(dto, content, parameters, output, stringReferer)
+    except:
+        dto.publishLoggerInfo('error at wget download: ' + str(sys.exc_info()))
 
 
-# ----- # ----- #
-def host_vimeo(dto, content, title, stringReferer, directory):
-    if title == '':
-        title = str(input('\nPlease enter the Title:\n'))
+def download_ydl(dto, content, parameters, output, stringReferer):
+    if dto.getBandwidth() != '0':
+        dto.setParameters(dto.getParameters() + ' --limit-rate {}'.format(dto.getBandwidth()))
 
-    if stringReferer == '':
-        stringReferer = str(input('\nPlease enter the reference URL:\n'))
+    if dto.getAxel():
+        dto.setParameters(dto.getParameters() + ' --external-downloader axel')
 
-    content = content.split('?')[0]
-    title = getTitleFormated(title)
-    output = '-f best -o "{dir}/{title}.%(ext)s"'.format(title = title, dir = directory)
+        if dto.getBandwidth() != '0':
+            dto.setParameters(dto.getParameters() + ' --external-downloader-args "-s {}"'.format(human2bytes(dto.getBandwidth())))
 
-    return download_ydl(dto, content, dto.getParameters(), output, stringReferer)
+    if stringReferer != '':
+        dto.setParameters(dto.getParameters() + ' --referer "{reference}"'.format(reference = stringReferer))
+
+    ydl = 'youtube-dl {parameter} {output} "{url}"'.format(parameter = dto.getParameters(), output = output, url = content)
+
+    download(dto, ydl, 'ydl', content)
 
 
-# ----- # ----- #
-def host_cloudfront(dto, content, title, stringReferer, directory):
-    if title == '':
-        title = str(input('\nPlease enter the Title:\n'))
+def download_aria2c(dto, content, dir):
+    links = getEchoList(content)
 
-    title = getTitleFormated(title)
-    output = '-f best -o "{dir}/{title}.mp4"'.format(title = title, dir = directory)
+    dl = 'echo ' + links + ' | '
 
-    return download_ydl(dto, content, dto.getParameters(), output, stringReferer)
+    dl += 'aria2c -i - -x 8 -j 16 --continue --min-split-size=1M --optimize-concurrent-downloads'
+
+    if dto.getBandwidth() != '0':
+        dl += ' --max-overall-download-limit={}'.format(dto.getBandwidth())
+
+    if dir != '':
+        dl += ' --dir="{}"'.format(dir)
+
+    download(dto, dl, 'aria2c', content)
+
+
+def download_aria2c_magnet(dto, content, dir):
+    dl = 'aria2c --seed-time=0'
+
+    if dir != '':
+        dl += ' --dir="{}"'.format(dir)
+
+    if dto.getBandwidth() != '0':
+        dl += ' --max-overall-download-limit={}'.format(dto.getBandwidth())
+
+    dl += ' "{}"'.format(content)
+
+    download(dto, dl, 'aria2c-magnet', content)
+
+
+def download(dto, command, platform, content):
+    try:
+        dto.publishLoggerDebug(platform + ' command is: ' + command)
+
+        i = 0
+        returned_value = ''
+
+        while i < 3:
+            returned_value = os.system('echo \'' + command + '\' >&1 | bash')
+
+            if returned_value > 0:
+                if returned_value == 2048:
+                    return returned_value
+                else:
+                    dto.publishLoggerDebug('Error Code: ' + str(returned_value))
+                    i += 1
+                    timer = random.randint(200,1000)/100
+                    dto.publishLoggerInfo('sleep for ' + str(timer) + 's')
+                    time.sleep(timer)
+
+                    if i == 3:
+                        dto.publishLoggerInfo('the Command was: %s' % command)
+                        for item in content:
+                            os.system('echo "{url}" >> dl-error-' + platform + '.txt'.format(url = item))
+                        return returned_value
+
+            else:
+                return returned_value
+
+    except KeyboardInterrupt:
+        dto.publishLoggerInfo('Interupt by User')
+        for item in content:
+            os.system('echo "{url}" >> dl-error-' + platform + '.txt'.format(url = item))
+        os._exit(1)
+
+    except:
+        dto.publishLoggerInfo('error at ' + platform + ' download: ' + str(sys.exc_info()))
