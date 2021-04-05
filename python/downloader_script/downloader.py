@@ -124,18 +124,18 @@ def download_wget(dto, content, accept, reject):
 
 def download_ydl(dto, content, parameters, output, stringReferer):
     if dto.getBandwidth() != '0':
-        dto.setParameters(dto.getParameters() + ' --limit-rate {}'.format(dto.getBandwidth()))
+        parameters += ' --limit-rate {}'.format(dto.getBandwidth())
 
     if dto.getAxel():
-        dto.setParameters(dto.getParameters() + ' --external-downloader axel')
+        parameters += ' --external-downloader axel'
 
         if dto.getBandwidth() != '0':
-            dto.setParameters(dto.getParameters() + ' --external-downloader-args "-s {}"'.format(human2bytes(dto.getBandwidth())))
+            parameters += ' --external-downloader-args "-s {}"'.format(human2bytes(dto.getBandwidth()))
 
     if stringReferer != '':
-        dto.setParameters(dto.getParameters() + ' --referer "{reference}"'.format(reference = stringReferer))
+        parameters += ' --referer "{reference}"'.format(reference = stringReferer)
 
-    ydl = 'youtube-dl {parameter} {output} "{url}"'.format(parameter = dto.getParameters(), output = output, url = content)
+    ydl = 'youtube-dl {parameter} {output} "{url}"'.format(parameter = parameters, output = output, url = content)
 
     download(dto, ydl, 'ydl', content)
 

@@ -20,6 +20,8 @@ def getLanguage(dto, platform):
 def getUserCredentials(dto, platform):
     credentialList = ['animeondemand', 'udemy']
 
+    dto.publishLoggerDebug(dto.getData())
+
     if platform in credentialList:
         if platform == 'animeondemand':
             for p in dto.getData()['animeondemand']:
@@ -31,6 +33,8 @@ def getUserCredentials(dto, platform):
 
     if dto.getCookieFile():
         parameter = '--cookies ' + dto.getCookieFile() + ' ' + dto.getParameters()
+
+    dto.publishLoggerDebug(parameter)
 
     return parameter
 
@@ -255,16 +259,22 @@ def host_crunchyroll(dto, content, title, stringReferer, directory):
 
 
 def host_udemy(dto, content, title, stringReferer, directory):
-    parameters = getUserCredentials(dto, 'udemy')
+    parameter = getUserCredentials(dto, 'udemy')
 
-    title = content.split('/',4)[4].rsplit('/',5)[0]
-    url = 'https://www.udemy.com/' + title
+    if '/course/' in content:
+        content = content.replace('/course', '')
 
-    dto.publishLoggerInfo('udemy url: ' + url)
+    if 'https://udemy.com' in content:
+        content = content.replace('https://udemy.com', 'https://www.udemy.com')
+
+    title = content.split('/')[3]
+
+    dto.publishLoggerInfo('udemy title: ' + str(title))
+    dto.publishLoggerInfo('udemy url: ' + content)
 
     output = '-f best -o "{dir}/%(playlist)s - {title}/%(chapter_number)s-%(chapter)s/%(playlist_index)s-%(title)s.%(ext)s"'.format(title = title, dir = directory)
 
-    return download_ydl(dto, content, parameters, output, stringReferer)
+    return download_ydl(dto, content, parameter, output, stringReferer)
 
 
 def host_vimeo(dto, content, title, stringReferer, directory):
