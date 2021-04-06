@@ -77,7 +77,7 @@ def download_wget(dto, content, accept, reject):
 
         if (int(freeStorage) >= int(testSize)):
 
-            download(dto, wget, 'wget', content)
+            return download(dto, wget, 'wget', content)
             # i = 0
             # returned_value = ''
 
@@ -137,7 +137,7 @@ def download_ydl(dto, content, parameters, output, stringReferer):
 
     ydl = 'youtube-dl {parameter} {output} "{url}"'.format(parameter = parameters, output = output, url = content)
 
-    download(dto, ydl, 'ydl', content)
+    return download(dto, ydl, 'ydl', content)
 
 
 def download_aria2c(dto, content, dir):
@@ -153,7 +153,7 @@ def download_aria2c(dto, content, dir):
     if dir != '':
         dl += ' --dir="{}"'.format(dir)
 
-    download(dto, dl, 'aria2c', content)
+    return download(dto, dl, 'aria2c', content)
 
 
 def download_aria2c_magnet(dto, content, dir):
@@ -167,7 +167,7 @@ def download_aria2c_magnet(dto, content, dir):
 
     dl += ' "{}"'.format(content)
 
-    download(dto, dl, 'aria2c-magnet', content)
+    return download(dto, dl, 'aria2c-magnet', content)
 
 
 def download(dto, command, platform, content):
@@ -192,8 +192,7 @@ def download(dto, command, platform, content):
 
                     if i == 3:
                         dto.publishLoggerInfo('the Command was: %s' % command)
-                        for item in content:
-                            os.system('echo "{url}" >> dl-error-' + platform + '.txt'.format(url = item))
+                        os.system('echo "' + content + '" >> dl-error-' + platform + '.txt')
                         return returned_value
 
             else:
@@ -201,8 +200,7 @@ def download(dto, command, platform, content):
 
     except KeyboardInterrupt:
         dto.publishLoggerInfo('Interupt by User')
-        for item in content:
-            os.system('echo "{url}" >> dl-error-' + platform + '.txt'.format(url = item))
+        os.system('echo "' + content + '" >> dl-error-' + platform + '.txt')
         os._exit(1)
 
     except:

@@ -453,7 +453,7 @@ def ydl_list(itemList):
             else:
                 if ydl_extractor(dto, str(item)) == 0:
                     urlCopy.remove(item)
-                    dto.publishLoggerDebug('removed: ' + str(item) + ' | rest list ' + str(urlCopy))
+                    dto.publishLoggerInfo('removed: ' + str(item) + ' | rest list ' + str(urlCopy))
 
         except KeyboardInterrupt:
             dto.publishLoggerInfo('Interupt by User')
