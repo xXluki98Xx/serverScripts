@@ -135,6 +135,9 @@ def download_ydl(dto, content, parameters, output, stringReferer):
     if stringReferer != '':
         parameters += ' --referer "{reference}"'.format(reference = stringReferer)
 
+    if dto.getVerbose():
+        parameters += ' --verbose'
+
     ydl = 'youtube-dl {parameter} {output} "{url}"'.format(parameter = parameters, output = output, url = content)
 
     return download(dto, ydl, 'ydl', content)

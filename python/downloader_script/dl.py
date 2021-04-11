@@ -76,6 +76,7 @@ def chunks(lst, n):
 @click.option('-up', '--update-packages', default=False, is_flag=True, help='updates packages listed in requirements.txt')
 @click.option('-sy', '--sync', default=False, is_flag=True, help='')
 @click.option('-v', '--verbose', default=False, is_flag=True, help='Verbose mode')
+@click.option('-cr', '--credentials', default=False, is_flag=True, help='Need Credentials')
 
 # int
 @click.option('--retries', default=5, help='Enter an Number for Retries')
@@ -89,7 +90,7 @@ def chunks(lst, n):
 @click.option('-dl','--dub-lang', default='', help='Enter language Code (de / en)')
 @click.option('-d', '--debug', default='INFO', help='Using Logging mode')
 
-def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file, sub_lang, dub_lang, playlist, no_remove, update_packages, debug, sync, verbose):
+def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file, sub_lang, dub_lang, playlist, no_remove, update_packages, debug, sync, verbose, credentials):
     global dto
     dto = dto()
     dto.setVerbose(verbose)
@@ -105,13 +106,14 @@ def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file, sub_lang, 
     dto.setAxel(axel)
     dto.setSingle(False)
     dto.setPathToRoot(getRootPath(dto))
+    dto.setCredentials(credentials)
 
     if update_packages:
         update(dto, dto.getPathToRoot())
 
     dto.setData(loadConfig(dto.getPathToRoot()))
 
-    parameters = '--retries {retries} --min-sleep-interval {min_sleep} --max-sleep-interval {max_sleep} -c'.format(retries = retries, min_sleep = min_sleep, max_sleep = max_sleep)
+    parameters = '--retries {retries} --min-sleep-interval {min_sleep} --max-sleep-interval {max_sleep} --continue'.format(retries = retries, min_sleep = min_sleep, max_sleep = max_sleep)
     dto.setParameters(parameters)
 
 

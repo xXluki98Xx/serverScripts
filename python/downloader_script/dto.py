@@ -30,6 +30,7 @@ class dto():
         self.boolean_single = False
         self.boolean_axel = False
         self.boolean_space = False
+        self.boolean_credential = False
 
         self.time_start = datetime.now()
 
@@ -125,6 +126,11 @@ class dto():
         return self.boolean_space
     def setSpace(self, swap):
         self.boolean_space = swap
+
+    def getCredentials(self):
+        return self.boolean_credential
+    def setCredentials(self, swap):
+        self.boolean_credential = swap
 
 
 # ----- # ----- # Time
