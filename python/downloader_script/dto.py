@@ -21,7 +21,8 @@ class dto():
         self.string_parameters = ''
         self.string_pathtoroot = ''
         self.string_cookiefile = ''
-        self.string_logging = 'INFO'
+        self.string_logging = ''
+        self.string_offset = ''
 
         self.boolean_playlist = False
         self.boolean_removefiles = False
@@ -78,17 +79,22 @@ class dto():
         return self.logger
     def setLogger(self, swap):
         self.string_logging = swap
-        self.logger_level = getattr(logging, self.string_logging.upper(), 'info')
+        self.logger_level = getattr(logging, self.string_logging.upper(), logging.WARNING)
 
         if not isinstance(self.logger_level, int):
             raise ValueError('Invalid log level: %s' % self.logger_level)
-        
+
         return self.get_logger()
 
     def getLogging(self):
         return self.string_logging
     def setLogging(self, swap):
         self.string_logging = swap
+
+    def getOffset(self):
+        return self.string_offset
+    def setOffset(self, swap):
+        self.string_offset = swap
 
 
 # ----- # ----- # Boolean
@@ -189,4 +195,10 @@ class dto():
         self.logger.debug(message)
 
     def publishLoggerWarn(self, message):
-        self.logger.warn(message)
+        self.logger.warning(message)
+
+    def publishLoggerError(self, message):
+        self.logger.error(message)
+
+    def publishLoggerCritical(self, message):
+        self.logger.critical(message)

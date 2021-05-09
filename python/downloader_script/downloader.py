@@ -77,7 +77,7 @@ def download_wget(dto, content, accept, reject):
 
         if (int(freeStorage) >= int(testSize)):
 
-            return download(dto, wget, 'wget', content)
+            download(dto, wget, 'wget', content)
             # i = 0
             # returned_value = ''
 
@@ -105,7 +105,7 @@ def download_wget(dto, content, accept, reject):
             #         return returned_value
 
         else:
-            dto.publishLoggerInfo('not enough space')
+            dto.publishLoggerWarn('wget - not enough space')
             dto.publishLoggerInfo('Directory size: ' + bytes2human(int(dirSize)*1000))
             dto.publishLoggerInfo('free Space: ' + bytes2human(freeStorage))
 
@@ -114,12 +114,12 @@ def download_wget(dto, content, accept, reject):
             return 507
 
     except KeyboardInterrupt:
-        dto.publishLoggerInfo('Interupt by User')
+        dto.publishLoggerWarn('Interupt by User')
         os.system('echo "{wget}" >> dl-error-wget.txt'.format(wget = content))
         os._exit(1)
 
     except:
-        dto.publishLoggerInfo('error at wget download: ' + str(sys.exc_info()))
+        dto.publishLoggerError('wget - error at download: ' + str(sys.exc_info()))
 
 
 def download_ydl(dto, content, parameters, output, stringReferer):
@@ -194,7 +194,7 @@ def download(dto, command, platform, content):
                     time.sleep(timer)
 
                     if i == 3:
-                        dto.publishLoggerInfo('the Command was: %s' % command)
+                        dto.publishLoggerWarn('the Command was: %s' % command)
                         os.system('echo "' + content + '" >> dl-error-' + platform + '.txt')
                         return returned_value
 
@@ -202,9 +202,9 @@ def download(dto, command, platform, content):
                 return returned_value
 
     except KeyboardInterrupt:
-        dto.publishLoggerInfo('Interupt by User')
+        dto.publishLoggerDebug('Interupt by User')
         os.system('echo "' + content + '" >> dl-error-' + platform + '.txt')
         os._exit(1)
 
     except:
-        dto.publishLoggerInfo('error at ' + platform + ' download: ' + str(sys.exc_info()))
+        dto.publishLoggerError(platform + ' - error at downloading: ' + str(sys.exc_info()))

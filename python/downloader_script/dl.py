@@ -88,7 +88,7 @@ def chunks(lst, n):
 @click.option('-cf','--cookie-file', default='', help='Enter Path to cookie File')
 @click.option('-sl','--sub-lang', default='', help='Enter language Code (de / en)')
 @click.option('-dl','--dub-lang', default='', help='Enter language Code (de / en)')
-@click.option('-d', '--debug', default='INFO', help='Using Logging mode')
+@click.option('-d', '--debug', default='', help='Using Logging mode')
 
 def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file, sub_lang, dub_lang, playlist, no_remove, update_packages, debug, sync, verbose, credentials):
     global dto
@@ -106,7 +106,7 @@ def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file, sub_lang, 
     dto.setAxel(axel)
     dto.setSingle(False)
     dto.setPathToRoot(getRootPath(dto))
-    dto.setCredentials(credentials)
+    # dto.setCredentials(credentials)
 
     if update_packages:
         update(dto, dto.getPathToRoot())
@@ -126,7 +126,6 @@ def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file, sub_lang, 
 @click.option('-p', '--platform', default='', help='Platform')
 
 # switch
-@click.option('-cr', '--crunchyroll', default=False, is_flag=True, help='syntax Crunchyroll')
 @click.option('-s', '--single', default=False, is_flag=True, help='series is only one Season')
 
 # arguments
@@ -135,11 +134,8 @@ def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file, sub_lang, 
 def rename(rename, offset, cut, platform, single):
     dto.setSingle(single)
 
-    if platform:
-        platform = 'crunchyroll'
-
     for itemPath in rename:
-        func_rename(dto, itemPath, platform, offset, cut)
+        func_rename(dto, itemPath, offset, cut)
 
 
 # ----- # ----- # replace command
@@ -199,9 +195,21 @@ def convertFiles(newformat, path, subpath, ffmpeg, vcodec, acodec, no_fix, no_re
 
 
         except:
-            dto.publishLoggerInfo('error at convertFiles ffmpeg: ' + str(sys.exc_info()))
+            dto.publishLoggerError('convertfiles - error at ffmpeg: ' + str(sys.exc_info()))
 
     elapsedTime()
+
+
+# ----- # ----- #
+@main.command(help='Path for fileMerging, not file')
+
+# arguments
+@click.argument('newformat', nargs=1)
+@click.argument('paths', nargs=-1)
+
+def mergeFiles(paths, newformat):
+    for path in paths:
+        func_ffmpegDirMerge(dto, path, newformat)
 
 
 # ----- # ----- # divideAndConquer command
@@ -260,13 +268,13 @@ def dnc(url, file, dir, chunck_size, reverse):
             with safer.open(file, 'w') as f:
                 for url in urlCopy:
                     f.write('%s\n' % url)
-            dto.publishLoggerInfo('Interupt by User')
+            dto.publishLoggerWarn('Interupt by User')
             elapsedTime()
             os._exit(1)
             break
 
         except:
-            dto.publishLoggerInfo('error at divideAndConquer list: ' + str(sys.exc_info()))
+            dto.publishLoggerError('divideAndConquer - error at list: ' + str(sys.exc_info()))
 
         finally:
             # will always be executed last, with or without exception
@@ -368,12 +376,12 @@ def wget_list(itemList, accept, reject):
                 with safer.open(itemList, 'w') as f:
                     for url in urlCopy:
                         f.write('%s\n' % url)
-            dto.publishLoggerInfo('Interupt by User')
+            dto.publishLoggerWarn('Interupt by User')
             elapsedTime()
             os._exit(1)
 
         except:
-            dto.publishLoggerInfo('error at wget list: ' + str(sys.exc_info()))
+            dto.publishLoggerError('wget - error at list: ' + str(sys.exc_info()))
 
         finally:
             # will always be executed last, with or without exception
@@ -392,9 +400,14 @@ def wget_list(itemList, accept, reject):
 # ----- # ----- # single URL
 @main.command(help='Enter an URL for YoutubeDL')
 
+#String
+@click.option('-os', '--offset', default=0, help='String Offset')
+
 # arguments
 @click.argument('url', nargs=-1)
-def ydl(url):
+def ydl(url, offset):
+    dto.setOffset(offset)
+
     repeat = True
 
     while repeat:
@@ -455,10 +468,10 @@ def ydl_list(itemList):
             else:
                 if ydl_extractor(dto, str(item)) == 0:
                     urlCopy.remove(item)
-                    dto.publishLoggerInfo('removed: ' + str(item) + ' | rest list ' + str(urlCopy))
+                    dto.publishLoggerDebug('removed: ' + str(item) + ' | rest list ' + str(urlCopy))
 
         except KeyboardInterrupt:
-            dto.publishLoggerInfo('Interupt by User')
+            dto.publishLoggerDebug('Interupt by User')
             if not dto.getSync():
                 with safer.open(itemList, 'w') as f:
                     for url in urlCopy:
@@ -467,7 +480,7 @@ def ydl_list(itemList):
             os._exit(1)
 
         except:
-            dto.publishLoggerInfo('error at ydl list: ' + str(sys.exc_info()))
+            dto.publishLoggerError('error at ydl list: ' + str(sys.exc_info()))
 
         finally:
             # will always be executed last, with or without exception

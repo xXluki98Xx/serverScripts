@@ -15,9 +15,9 @@ def getLanguage(dto, platform):
 
     if platform == 'crunchyroll':
         output += ' --all-subs --embed-subs --write-sub --merge-output-format mkv --recode-video mkv'
-        if dto.getDubLang() == 'de': return output + ' --format "best[format_id!=hardsub][format_id*=adaptive_hls-audio-deDE]"'
+        if dto.getDubLang() == 'de': return output + ' --format "best[format_id!*=hardsub][format_id*=adaptive_hls-audio-deDE]"'
 
-        return output + ' --format "best[format_id!=hardsub][format_id*=adaptive_hls-audio-jaJP]"'
+        return output + ' --format "best[format_id!*=hardsub][format_id*=adaptive_hls-audio-jaJP]"'
 
     # if platform == 'animeondemand':
     #     output += ' --all-subs --embed-subs --write-sub --merge-output-format mkv --recode-video mkv'
@@ -28,15 +28,14 @@ def getLanguage(dto, platform):
     return output
 
 def getUserCredentials(dto, platform):
-    # credentialList = ['animeondemand', 'udemy', 'crunchyroll']
     parameter = ''
-
-    if dto.getCredentials():
-        if platform in dto.getData():
-            parameter += ' --username ' + dto.getData()[platform].get('username') + ' --password ' + dto.getData()[platform].get('password')
 
     if dto.getCookieFile():
         parameter += ' --cookies ' + dto.getCookieFile()
+    else:
+        if platform in dto.getData():
+            parameter += ' --username ' + dto.getData()[platform].get('username') + ' --password ' + dto.getData()[platform].get('password') + ' '
+
 
     dto.publishLoggerDebug(parameter)
 
@@ -61,7 +60,7 @@ def ydl_extractor(dto, content):
                 url = content
 
     if ('magnet:?xt=urn:btih' in content):
-        dto.publishLoggerInfo('current Download: ' + url)
+        dto.publishLoggerDebug('current Download: ' + url)
         try:
             (url, directory) = content.split(';')
         except ValueError:
@@ -104,10 +103,16 @@ def ydl_extractor(dto, content):
     if ('xvideos' in url) : return host_xvideos(dto, url, title, stringReferer, directory)
 
     if ('udemy' in url) : return host_udemy(dto, url, title, stringReferer, directory)
-    if ('crunchyroll' in url) : return host_crunchyroll(dto, url, title, stringReferer, directory)
-    if ('anime-on-demand' in url) : return host_animeondemand(dto, url, title, stringReferer, directory)
     if ('vimeo' in url) : return host_vimeo(dto, url, title, stringReferer, directory)
     if ('cloudfront' in url) : return host_cloudfront(dto, url, title, stringReferer, directory)
+    
+    if ('crunchyroll' in url) :
+        if dto.getSync():
+            return host_crunchyroll_sync(dto, url, title, stringReferer, directory)
+        else:
+            return host_crunchyroll(dto, url, title, stringReferer, directory)
+
+    if ('anime-on-demand' in url) : return host_animeondemand(dto, url, title, stringReferer, directory)
 
     return host_default(dto, url, title, stringReferer, directory)
 
@@ -253,7 +258,7 @@ def host_animeondemand(dto, content, title, stringReferer, directory):
 
 def host_crunchyroll(dto, content, title, stringReferer, directory):
     parameters = dto.getParameters()
-    parameters = getUserCredentials(dto, 'crunchyroll')
+    parameters += getUserCredentials(dto, 'crunchyroll')
 
     if 'www.' not in content:
         swap = content.split('/', 2)
@@ -272,8 +277,54 @@ def host_crunchyroll(dto, content, title, stringReferer, directory):
     return download_ydl(dto, content, parameters, output, stringReferer)
 
 
+def host_crunchyroll_sync(dto, content, title, stringReferer, directory):
+    parameters = dto.getParameters()
+    parameters += getUserCredentials(dto, 'crunchyroll')
+
+    if 'www.' not in content:
+        swap = content.split('/', 2)
+        content = 'https://www.' + swap[2]
+
+    # replace country code
+    if len(content.split('/')) >= 4:
+        if content.endswith('/'):
+            content = content[:-1]
+        pattern = "(https:\/\/www\.crunchyroll\.com\/)(.+)(\/)"
+        content = re.sub(pattern, r"\1", content)
+
+    # getting all subtitle theoretisch obsolet
+    # syncOutput = '--no-mark-watched --hls-prefer-ffmpeg --socket-timeout 15'
+    # syncOutput += ' --all-subs --write-sub --skip-download'
+    # syncOutput += ' --ignore-errors --output "{dir}/%(playlist)s/season-%(season_number)s-episode-%(episode_number)s/subtitle-%(episode)s.%(ext)s"'.format(dir = directory)
+
+    # download_ydl(dto, content, parameters, syncOutput, stringReferer)
+
+    # getting all audios (low quality video) | scheinbar sind die videos unterschiedlich, also mehr als nur andere audiospur
+    syncOutput = '--no-mark-watched --socket-timeout 15'
+    # syncOutput += ' --hls-prefer-native'
+    syncOutput += ' --hls-use-mpegts'
+    syncOutput += ' --format "bestvideo[height<=480][format_id!*=hardsub][format_id!*=adaptive_hls-audio-jaJP]+bestaudio/best[height<=480][format_id!*=hardsub]"'
+    syncOutput += ' --extract-audio --audio-format aac --audio-quality 0 --keep-video'
+    syncOutput += ' --prefer-avconv'
+    # syncOutput += ' --all-subs --write-sub'
+    if dto.getOffset() > 0:
+        syncOutput += ' --playlist-start %d' % dto.getOffset()
+    syncOutput += ' --ignore-errors --output "{dir}/%(playlist)s/season-%(season_number)s-episode-%(episode_number)s/audio-%(autonumber)s-%(episode)s.%(ext)s"'.format(dir = directory)
+
+    download_ydl(dto, content, parameters, syncOutput, stringReferer)
+
+    output = '--no-mark-watched --hls-prefer-ffmpeg --socket-timeout 15'
+    output += ' --format "best[format_id*=adaptive_hls-audio-jaJP][format_id!*=hardsub]"'
+    # output += ' --all-subs --embed-subs'
+    # output += ' --merge-output-format mkv --recode-video mkv'
+    output += ' --ignore-errors --output "{dir}/%(playlist)s/season-%(season_number)s-episode-%(episode_number)s/video-%(episode)s.%(ext)s"'.format(dir = directory)
+
+    download_ydl(dto, content, parameters, output, stringReferer)
+
+
 def host_udemy(dto, content, title, stringReferer, directory):
-    parameter = getUserCredentials(dto, 'udemy')
+    parameter = dto.getParameters()
+    parameter += getUserCredentials(dto, 'udemy')
 
     if '/course/' in content:
         content = content.replace('/course', '')
@@ -283,8 +334,8 @@ def host_udemy(dto, content, title, stringReferer, directory):
 
     title = content.split('/')[3]
 
-    dto.publishLoggerInfo('udemy title: ' + str(title))
-    dto.publishLoggerInfo('udemy url: ' + content)
+    dto.publishLoggerDebug('udemy title: ' + str(title))
+    dto.publishLoggerDebug('udemy url: ' + content)
 
     output = '--format best --output "{dir}/%(playlist)s - {title}/%(chapter_number)s-%(chapter)s/%(playlist_index)s-%(title)s.%(ext)s"'.format(title = title, dir = directory)
 

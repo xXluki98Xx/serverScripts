@@ -41,8 +41,8 @@ def update(dto, pathToRoot):
 
     output, error = proc.communicate()
 
-    dto.publishLoggerInfo(output.decode('ascii'))
-    dto.publishLoggerDebug(error.decode('ascii'))
+    dto.publishLoggerDebug(output.decode('ascii'))
+    dto.publishLoggerError(error.decode('ascii'))
 
 
 def loadConfig(pathToRoot):

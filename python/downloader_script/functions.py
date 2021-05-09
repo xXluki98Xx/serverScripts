@@ -135,33 +135,34 @@ def func_renameEpisode(season, episode, title, seasonOffset):
 
 
 # ----- # ----- # file operations
-def func_rename(dto, filePath, platform, offset, cut):
+def func_rename(dto, filePath, offset, cut):
     if os.path.isfile(filePath):
+        
         if filePath.startswith('.'):
             return
+
         old = os.path.join(os.getcwd(),filePath)
         new = os.path.join(os.getcwd(),func_formatingFilename(filePath))
         os.rename(old, new)
+
     else:
         try:
             path, dirs, files = next(os.walk(filePath))
+
+            for directory in dirs:
+                func_rename(dto, os.path.join(filePath, directory), offset, cut)
+
+            for f in os.listdir(path):
+                old = os.path.join(path,f)
+                f = f[offset:]
+                # f = f[:cut]
+
+                new = os.path.join(path,func_formatingFilename(f))
+                os.rename(old, new)
+
         except:
-            dto.publishLoggerInfo('error at func_rename: could the path be wrong?')
-
-        for directory in dirs:
-            func_rename(dto, os.path.join(filePath, directory), platform, offset, cut)
-
-        for f in os.listdir(path):
-            old = os.path.join(path,f)
-            f = f[offset:]
-            # f = f[:cut]
-
-            if platform == 'crunchyroll':
-                fSwap = func_formatingFilename(f).split('-', 4)
-                f = func_renameEpisode(fSwap[1], fSwap[3], fSwap[4], 1)
-
-            new = os.path.join(path,func_formatingFilename(f))
-            os.rename(old, new)
+            dto.publishLoggerError('function - func_rename: ' + str(sys.exc_info()))
+            dto.publishLoggerWarn('function - func_rename: could the path be wrong?')
 
         try:
             os.rename(filePath, func_formatingDirectories(filePath))
@@ -172,17 +173,20 @@ def func_rename(dto, filePath, platform, offset, cut):
 def func_replace(dto, filePath, old, new):
     try:
         path, dirs, files = next(os.walk(filePath))
+
+        for directory in dirs:
+            func_replace(dto, os.path.join(filePath, directory), old, new)
+
+        for f in os.listdir(path):
+            oldFile = os.path.join(path,f)
+            f = f.replace(old, new)
+            newFile = os.path.join(path,func_formatingFilename(f))
+            os.rename(oldFile, newFile)
+
     except:
-        dto.publishLoggerInfo('could the path be wrong?')
+        dto.publishLoggerError(' function - func_replace: ' + str(sys.exc_info()))
+        dto.publishLoggerWarn('function - func_rename: could the path be wrong?')
 
-    for directory in dirs:
-        func_replace(dto, os.path.join(filePath, directory), old, new)
-
-    for f in os.listdir(path):
-        oldFile = os.path.join(path,f)
-        f = f.replace(old, new)
-        newFile = os.path.join(path,func_formatingFilename(f))
-        os.rename(oldFile, newFile)
 
     try:
         os.rename(filePath, func_formatingDirectories(filePath))
@@ -211,7 +215,7 @@ def func_removeFiles(dto, path, file_count_prev):
 
             if index > len(files):
                 for i in files:
-                    dto.publishLoggerInfo('removing: ' + i)
+                    dto.publishLoggerDebug('removing: ' + i)
                     os.remove(os.path.join(path, i))
 
         else:
@@ -224,10 +228,10 @@ def func_removeFiles(dto, path, file_count_prev):
 
             if index > len(files):
                 for i in files:
-                    dto.publishLoggerInfo('removing: ' + i)
+                    dto.publishLoggerDebug('removing: ' + i)
                     os.remove(os.path.join(path, i))
 
-        dto.publishLoggerInfo('finished Removing')
+        dto.publishLoggerDebug('finished Removing')
 
 
 # ----- # ----- # convert files
@@ -270,7 +274,7 @@ def func_convertDirFiles(dto, path, newformat, subpath, vcodec, acodec, fix):
 
             func_convertDirFiles(dto, nextPath, newformat, subpath, vcodec, acodec, fix)
     except:
-        dto.publishLoggerInfo('error at func_convertDirFiles: ' + str(sys.exc_info()))
+        dto.publishLoggerError('function - func_convertDirFiles: ' + str(sys.exc_info()))
 
 
 def func_convertFilesFfmpeg(dto, fileName, newFormat, subPath, vcodec, acodec, fix):
@@ -316,7 +320,7 @@ def func_convertFilesFfmpeg(dto, fileName, newFormat, subPath, vcodec, acodec, f
             dto.publishLoggerDebug('fix: ' + str(not fix))
 
             if os.path.isfile(prePath + fileTarget):
-                dto.publishLoggerInfo('file exist already, move original to abort folder')
+                dto.publishLoggerWarn('file exist already, move original to abort folder')
 
                 if not os.path.isdir(pathAbort):
                     os.mkdir(pathAbort)
@@ -341,10 +345,11 @@ def func_convertFilesFfmpeg(dto, fileName, newFormat, subPath, vcodec, acodec, f
                     ffmpeg.input(prePath + fileOrig).output(pathFix + fileOrig, vcodec='copy', acodec='copy', map='0', **{'bsf:v': 'mpeg4_unpack_bframes'}).run()
 
                 except KeyboardInterrupt:
+                    dto.publishLoggerWarn('Interupt by User')
                     os._exit(1)
 
                 except:
-                    dto.publishLoggerInfo('error at func_convertFilesFfmpeg at fixing: ' + str(sys.exc_info()))
+                    dto.publishLoggerError('function - func_convertFilesFfmpeg at fixing: ' + str(sys.exc_info()))
                     try:
                         os.remove(pathFix + fileOrig)
                     except:
@@ -358,10 +363,11 @@ def func_convertFilesFfmpeg(dto, fileName, newFormat, subPath, vcodec, acodec, f
                     ffmpeg.input(sourceFile).output(prePath + fileTarget, vcodec=vcodec, acodec=acodec, map='0').run()
 
                 except KeyboardInterrupt:
+                    dto.publishLoggerWarn('Interupt by User')
                     os._exit(1)
 
                 except:
-                    dto.publishLoggerInfo('error at func_convertFilesFfmpeg with vcodec first try: ' + str(sys.exc_info()))
+                    dto.publishLoggerError('function - func_convertFilesFfmpeg with vcodec first try: ' + str(sys.exc_info()))
 
                     # Posible data lose
                     fileSwap = newFile + '.' + newFormat
@@ -379,8 +385,8 @@ def func_convertFilesFfmpeg(dto, fileName, newFormat, subPath, vcodec, acodec, f
                         ffmpeg.input(pathSwap + fileSwap).output(prePath + fileTarget, map='0', vcodec=vcodec, acodec=acodec, scodec='copy').run()
 
                     except:
-                        dto.publishLoggerInfo('error at func_convertFilesFfmpeg with vcodec second try with swapping: ' + str(sys.exc_info()))
-                        dto.publishLoggerInfo('broken file: ' + sourceFile)
+                        dto.publishLoggerError('function - func_convertFilesFfmpeg with vcodec second try with swapping: ' + str(sys.exc_info()))
+                        dto.publishLoggerWarn('function - broken file: ' + sourceFile)
 
                         try:
                             dto.publishLoggerDebug('pathAbort: ' + pathAbort)
@@ -396,25 +402,26 @@ def func_convertFilesFfmpeg(dto, fileName, newFormat, subPath, vcodec, acodec, f
                             os.remove(prePath + fileSwap)
                             os.remove(prePath + fileTarget)
                         except:
-                            dto.publishLoggerInfo('error at func_convertFilesFfmpeg with vcodec second try with swapping at swap removing: ' + str(sys.exc_info()))
+                            dto.publishLoggerError('function - func_convertFilesFfmpeg with vcodec second try with swapping at swap removing: ' + str(sys.exc_info()))
 
 
             else:
                 try:
-                    dto.publishLoggerInfo('fileTarget: ' + fileTarget)
+                    dto.publishLoggerDebug('fileTarget: ' + fileTarget)
                     ffmpeg.input(sourceFile).output(prePath + fileTarget).run()
 
                 except KeyboardInterrupt:
+                    dto.publishLoggerWarn('Interupt by User')
                     os._exit(1)
                 
                 except:
-                    dto.publishLoggerInfo('error at func_convertFilesFfmpeg at simple converting: ' + str(sys.exc_info()))
+                    dto.publishLoggerError('function - func_convertFilesFfmpeg at simple converting: ' + str(sys.exc_info()))
 
             dto.publishLoggerDebug('Permissions: ' + oct(stat.S_IMODE(os.lstat(prePath + fileOrig).st_mode)))
             dto.publishLoggerDebug('owner: ' + Path(prePath + fileOrig).owner() + ' | ' + str(pwd.getpwnam(Path(prePath + fileOrig).owner()).pw_uid))
             dto.publishLoggerDebug('group: ' + Path(prePath + fileOrig).group() + ' | ' + str(grp.getgrnam(Path(prePath + fileOrig).group()).gr_gid))
 
-            dto.publishLoggerInfo('changing permission on: ' + prePath+fileTarget)
+            dto.publishLoggerDebug('changing permission on: ' + prePath+fileTarget)
             Path(prePath + fileTarget).chmod(stat.S_IMODE(os.lstat(prePath + fileOrig).st_mode))
             os.chown(prePath + fileTarget, pwd.getpwnam(Path(prePath + fileOrig).owner()).pw_uid, grp.getgrnam(Path(prePath + fileOrig).group()).gr_gid)
 
@@ -428,13 +435,14 @@ def func_convertFilesFfmpeg(dto, fileName, newFormat, subPath, vcodec, acodec, f
                 
                 shutil.move(prePath + fileOrig, pathFinish + fileOrig)
             except:
-                dto.publishLoggerInfo('error at func_convertFilesFfmpeg finish at orig directory')
+                dto.publishLoggerError('function - func_convertFilesFfmpeg finish at orig directory')
 
         except KeyboardInterrupt:
+            dto.publishLoggerWarn('Interupt by User')
             os._exit(1)
 
         except:
-            dto.publishLoggerInfo('error at func_convertFilesFfmpeg: ' + str(sys.exc_info()))
+            dto.publishLoggerError('function - func_convertFilesFfmpeg: ' + str(sys.exc_info()))
 
         finally:
             if os.path.isdir(pathSwap):
@@ -442,3 +450,5 @@ def func_convertFilesFfmpeg(dto, fileName, newFormat, subPath, vcodec, acodec, f
 
             if os.path.isdir(pathFix):
                 shutil.rmtree(pathFix)
+
+
