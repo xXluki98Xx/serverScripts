@@ -67,12 +67,12 @@ def func_formatingDirectories(text):
     if text.startswith('.'):
         return
 
-    reg = re.compile(r'[^\w\d\s\-\_\/\.]')
+    reg = re.compile(r'[^\w\d\s\-\_\/\.\|]')
     reg3 = re.compile(r'-{3,}')
 
     swap = text.casefold()
     swap = re.sub(reg, '', swap)
-    swap = swap.replace(' ', '-').replace('_','-').replace('+','-')
+    swap = swap.replace(' ', '-').replace('_','-').replace('+','-').replace('|', '-')
 
     swap = re.sub(reg3, '§', swap)
     swap = swap.replace('--', '-')
@@ -331,7 +331,7 @@ def func_convertFilesFfmpeg(dto, fileName, newFormat, subPath, vcodec, acodec, f
                     pass
 
                 return
-            
+
             if not fix:
                 try:
                     dto.publishLoggerDebug('fixing')
@@ -371,12 +371,12 @@ def func_convertFilesFfmpeg(dto, fileName, newFormat, subPath, vcodec, acodec, f
 
                     # Posible data lose
                     fileSwap = newFile + '.' + newFormat
-                    
+
                     dto.publishLoggerDebug('swapFile: ' + fileSwap)
                     dto.publishLoggerDebug('fileTarget: ' + fileTarget)
 
                     os.remove(prePath + fileTarget)
-                    
+
                     if not os.path.isdir(pathSwap):
                         os.mkdir(pathSwap)
 
@@ -396,9 +396,9 @@ def func_convertFilesFfmpeg(dto, fileName, newFormat, subPath, vcodec, acodec, f
 
                             if not os.path.isdir(pathAbort):
                                 os.mkdir(pathAbort)
-                            
+
                             shutil.move(prePath + fileOrig, pathAbort + fileOrig)
-                            
+
                             os.remove(prePath + fileSwap)
                             os.remove(prePath + fileTarget)
                         except:
@@ -413,7 +413,7 @@ def func_convertFilesFfmpeg(dto, fileName, newFormat, subPath, vcodec, acodec, f
                 except KeyboardInterrupt:
                     dto.publishLoggerWarn('Interupt by User')
                     os._exit(1)
-                
+
                 except:
                     dto.publishLoggerError('function - func_convertFilesFfmpeg at simple converting: ' + str(sys.exc_info()))
 
@@ -432,7 +432,7 @@ def func_convertFilesFfmpeg(dto, fileName, newFormat, subPath, vcodec, acodec, f
 
                 if not os.path.isdir(pathFinish):
                     os.mkdir(pathFinish)
-                
+
                 shutil.move(prePath + fileOrig, pathFinish + fileOrig)
             except:
                 dto.publishLoggerError('function - func_convertFilesFfmpeg finish at orig directory')
