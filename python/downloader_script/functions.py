@@ -452,3 +452,105 @@ def func_convertFilesFfmpeg(dto, fileName, newFormat, subPath, vcodec, acodec, f
                 shutil.rmtree(pathFix)
 
 
+def func_ffmpegDirMerge(dto, path, newformat):
+    try:
+        paths, dirs, files = next(os.walk(path))
+
+        # pathList = [
+        #     'fix', 'abort', 'swap', 'orig', subpath,
+        # ]
+
+        dto.publishLoggerDebug('convertDirFiles')
+        dto.publishLoggerDebug('path: ' + path)
+        dto.publishLoggerDebug('dirs: ' + str(dirs))
+        dto.publishLoggerDebug('file count: ' + str(len(files)))
+
+        for f in files:
+            if f.startswith('.'):
+                continue
+
+            preTitle = ''
+            if 'season' in path:
+                swap = path.split('-')
+                if (int(swap[1])+1) < 10:
+                    if (int(swap[3])+1) < 10:
+                        preTitle = 's0' + str(int(swap[1])+1) + 'e0' + str(int(swap[3]))
+                    else:
+                        preTitle = 's0' + str(int(swap[1])+1) + 'e' + str(int(swap[3]))
+                else:
+                    if (int(swap[3])+1) < 10:
+                        preTitle = 's' + str(int(swap[1])+1) + 'e0' + str(int(swap[3]))
+                    else:
+                        preTitle = 's' + str(int(swap[1])+1) + 'e' + str(int(swap[3]))
+
+            func_ffmpegMerge(dto, path, files, preTitle, newformat)
+
+        #     filePath = os.path.join(path, f)
+
+        #     dto.publishLoggerDebug('filePath: ' + filePath)
+        #     dto.publishLoggerDebug('file: ' + f)
+
+        #     func_ffmpegMerge(dto, filePath)
+
+        for d in dirs:
+            if d.startswith('.'):
+                continue
+
+            # if any(paths in d for paths in pathList):
+            #     continue
+
+            nextPath = os.path.join(paths, d)
+
+            dto.publishLoggerDebug('newformat: ' + newformat)
+            dto.publishLoggerDebug('nextPath: ' + nextPath)
+            dto.publishLoggerDebug('ffmpeg: ' + str(ffmpeg))
+
+            # preTitle = ''
+            # if 'season' in d:
+            #     swap = d.split('-')
+            #     if (int(swap[1])+1) < 10:
+            #         if (int(swap[3])+1) < 10:
+            #             preTitle = 's0' + str(int(swap[1])+1) + 'e0' + str(int(swap[3]))
+            #         else:
+            #             preTitle = 's0' + str(int(swap[1])+1) + 'e' + str(int(swap[3]))
+            #     else:
+            #         if (int(swap[3])+1) < 10:
+            #             preTitle = 's' + str(int(swap[1])+1) + 'e0' + str(int(swap[3]))
+            #         else:
+            #             preTitle = 's' + str(int(swap[1])+1) + 'e' + str(int(swap[3]))
+
+            func_ffmpegDirMerge(dto, nextPath, newformat)
+    except:
+        dto.publishLoggerError('function - func_ffmpegDirMerge: ' + str(sys.exc_info()))
+
+
+def func_ffmpegMerge(dto, path, files, preTitle, newFormat):
+    try:
+        list_subtitles = []
+        list_audio = []
+        target_file = ''
+
+        for item in files:
+            if item.startswith('audio'):
+                list_audio.append(item)
+
+            if item.startswith('subtitle'):
+                list_subtitles.append(item)
+
+            if item.startswith('video'):
+                target_file = item
+
+        sourceFile = ffmpeg.input(path + '/' + target_file)
+        mkvFile = path + '/' + preTitle + target_file.replace('video', '') + '.' + newFormat
+
+        for item in list_audio:
+            swap = ffmpeg.input(path + '/' + item)
+            ffmpeg.output(sourceFile, swap, mkvFile, map='1:a:0', codec='copy').run()
+
+        for item in list_subtitles:
+            swap = ffmpeg.input(path + '/' + item)
+            ffmpeg.output(sourceFile, swap, mkvFile, map='1:s:0', codec='copy').run()
+
+        ffmpeg.input(mkvFile).output(path + '/' + 'h265/' + mkvFile, map='0', vcodec='libx265').run()
+    except:
+        dto.publishLoggerError('function - func_ffmpegMerge: ' + str(sys.exc_info()))
