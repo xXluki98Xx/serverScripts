@@ -1,6 +1,8 @@
 import logging
 import re
 import urllib.request
+import requests
+import os
 
 import youtube_dl
 
@@ -22,7 +24,7 @@ def getLanguage(dto, platform):
     # if platform == 'animeondemand':
     #     output += ' --all-subs --embed-subs --write-sub --merge-output-format mkv --recode-video mkv'
     #     if dto.getDubLang() == 'de': return output + ' --format "best[format_id*=ger-Dub]"'
-    
+
     #     return output + ' --format "best[format_id*=ger-Dub]"'
 
     return output
@@ -52,7 +54,7 @@ def ydl_extractor(dto, content):
         (url, title, stringReferer, directory) = content.split(';')
     except ValueError:
         try:
-            (url, title, stringReferer) = content.split(';')            
+            (url, title, stringReferer) = content.split(';')
         except ValueError:
             try:
                 (url, title) = content.split(';')
@@ -105,7 +107,7 @@ def ydl_extractor(dto, content):
     if ('udemy' in url) : return host_udemy(dto, url, title, stringReferer, directory)
     if ('vimeo' in url) : return host_vimeo(dto, url, title, stringReferer, directory)
     if ('cloudfront' in url) : return host_cloudfront(dto, url, title, stringReferer, directory)
-    
+
     if ('crunchyroll' in url) :
         if dto.getSync():
             return host_crunchyroll_sync(dto, url, title, stringReferer, directory)
@@ -177,24 +179,24 @@ def host_hahomoe(dto, content, title, stringReferer, directory):
     url = content
     webpage = ''
 
-    req = urllib.request.Request(url, headers = {'User-Agent': 'Mozilla/5.0'})
-    with urllib.request.urlopen(req) as response:
-        webpage = response.read()
-
-    urlRegex = re.compile('<source data-fluid-hd="" src="(.*?)" title="720p" type="video/mp4"></source>')
-    m = urlRegex.search(str(webpage))
-    if m:
-        url = m.group(1)
+    res = requests.get(url, allow_redirects=False)
+    url2 = re.findall('<iframe src="(https:\/\/haho\.moe\/embed\?v=.+)"', res.text)[0]
 
     if title == '':
-        titleRegex = re.compile('<title>(.*?)</title>')
-        m = titleRegex.search(str(webpage))
-        if m:
-            title = m.group(1).rsplit(' ',4)[0]
+        title = re.findall('<title>(.+)</title>',res.text)[0]
+
+        if title:
+            title = title.rsplit(' ',4)[0]
         else:
             title = ''
 
-    title = getTitleFormated(title)
+        title = getTitleFormated(title)
+        dto.publishLoggerDebug(title)
+
+    res2 = requests.get(url2, allow_redirects=False, cookies=res.cookies)
+
+    url = re.findall('<source src="(.+)" title="[0-9]{3}p" type="video/mp4">', res2.text)[0]
+
     output = '--format best --output "{dir}/{title}.mp4"'.format(title = title, dir = directory)
 
     return download_ydl(dto, url, dto.getParameters(), output, stringReferer)
