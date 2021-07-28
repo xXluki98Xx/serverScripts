@@ -32,6 +32,7 @@ class dto():
         self.boolean_axel = False
         self.boolean_space = False
         self.boolean_credential = False
+        self.boolean_break = False
 
         self.time_start = datetime.now()
 
@@ -137,6 +138,11 @@ class dto():
         return self.boolean_credential
     def setCredentials(self, swap):
         self.boolean_credential = swap
+
+    def getBreak(self):
+        return self.boolean_break
+    def setBreak(self, swap):
+        self.boolean_break = swap
 
 
 # ----- # ----- # Time

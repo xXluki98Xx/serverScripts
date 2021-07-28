@@ -74,6 +74,7 @@ def chunks(lst, n):
 @click.option('-sy', '--sync', default=False, is_flag=True, help='')
 @click.option('-v', '--verbose', default=False, is_flag=True, help='Verbose mode')
 @click.option('-cr', '--credentials', default=False, is_flag=True, help='Need Credentials')
+@click.option('-s', '--single', default=False, is_flag=True, help='close after finish')
 
 # int
 @click.option('--retries', default=5, help='Enter an Number for Retries')
@@ -87,7 +88,7 @@ def chunks(lst, n):
 @click.option('-dl','--dub-lang', default='', help='Enter language Code (de / en)')
 @click.option('-d', '--debug', default='', help='Using Logging mode')
 
-def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file, sub_lang, dub_lang, playlist, no_remove, update_packages, debug, sync, verbose, credentials):
+def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file, sub_lang, dub_lang, playlist, no_remove, update_packages, debug, sync, verbose, single, credentials):
     global dto
     dto = dto()
     dto.setVerbose(verbose)
@@ -101,8 +102,9 @@ def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file, sub_lang, 
     dto.setRemoveFiles(no_remove)
     dto.setSync(sync)
     dto.setAxel(axel)
-    dto.setSingle(False)
+    dto.setSingle(single)
     dto.setPathToRoot(ioutils.getRootPath(dto))
+    # dto.setBreak(break)
     # dto.setCredentials(credentials)
 
     if update_packages:
@@ -427,6 +429,10 @@ def ydl(url, offset):
             except KeyboardInterrupt:
                 pass
 
+        if dto.getSingle():
+            repeat = False
+            break
+        
         try:
             answer = input('\nDo you wish another Turn? (y | n):\n')
             if ('y' in answer) :
