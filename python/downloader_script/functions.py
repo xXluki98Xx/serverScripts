@@ -1,8 +1,6 @@
 import grp
-import logging
 import os
 import pwd
-import re
 import shutil
 import stat
 import sys
@@ -11,110 +9,7 @@ from pathlib import Path
 
 import ffmpeg
 
-
-# ----- # ----- # help functions
-def getTitleFormated(title):
-    newTitle = ''
-
-    if title == '':
-        now = datetime.now()
-        newTitle = 'dl_' + now.strftime('%m-%d-%Y_%H-%M-%S')
-        return newTitle
-    else:
-        newTitle = title
-
-    newTitle = func_formatingFilename(newTitle)
-
-    while newTitle.endswith('-'):
-        newTitle = newTitle[:-1]
-
-    while newTitle.startswith('-'):
-        newTitle = newTitle[1:]
-
-    return newTitle
-
-
-def bytes2human(n):
-    symbols = ('K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y')
-    prefix = {}
-    for i, s in enumerate(symbols):
-        prefix[s] = 1 << (i+1)*10
-    for s in reversed(symbols):
-        if n >= prefix[s]:
-            value = float(n) / prefix[s]
-            return '%.1f%s' % (value, s)
-
-    return '%sB' % n
-
-
-def human2bytes(n):
-    size = n[-1]
-
-    switcher = {
-        'B': 1,
-        'K': 1000,
-        'M': pow(1000,2),
-        'G': pow(1000,3),
-    }
-
-    swapSize = float(n[:-1]) * switcher.get(size, 0)
-
-    return '%s' % swapSize
-
-
-# ----- # ----- # formating
-def func_formatingDirectories(text):
-    if text.startswith('.'):
-        return
-
-    reg = re.compile(r'[^\w\d\s\-\_\/\.\|]')
-    reg3 = re.compile(r'-{3,}')
-
-    swap = text.casefold()
-    swap = re.sub(reg, '', swap)
-    swap = swap.replace(' ', '-').replace('_','-').replace('+','-').replace('|', '-')
-
-    swap = re.sub(reg3, '§', swap)
-    swap = swap.replace('--', '-')
-    swap = swap.replace('§', '---')
-
-    return swap
-
-
-def func_formatingFilename(text):
-    reg = re.compile(r'[^\w\d\s\-\_\/\.+|]')
-    reg3 = re.compile(r'-{3,}')
-
-    extensionsList = [
-                        '.mp4', '.mkv', '.avi', '.m4a', '.mov',
-                        '.flac', '.wav', '.mp3', '.aac',
-                        '.py', '.txt', '.md', '.pdf', '.doc', 'docx',
-                        '.iso', '.zip', '.rar',
-                        '.jpg', '.jpeg', '.svg', '.png',
-                        '.csv', '.html', '.ppt', '.pptx', '.xls', '.xlsx',
-                    ]
-
-    swap = text.casefold()
-
-    swap = re.sub(reg, '', swap)
-
-    if any(ext in swap for ext in extensionsList):
-        fileSwap = swap.rsplit('.',1)
-        swap = fileSwap[0].replace('/','').replace('.','') + '.' + fileSwap[1]
-    else:
-        swap = swap.replace('/','').replace('.','')
-
-    swap = swap.replace(' ', '-').replace('_','-').replace('+','-').replace('|','-')
-
-    swap = re.sub(reg3, '§', swap)
-    swap = swap.replace('--', '-')
-    swap = swap.replace('§', '---')
-
-    if any(ext in swap for ext in extensionsList):
-        fileSwap = swap.rsplit('.',1)
-        swap = getTitleFormated(fileSwap[0]) + '.' + fileSwap[1]
-
-    return swap
+import ioutils
 
 
 def func_renameEpisode(season, episode, title, seasonOffset):
@@ -142,7 +37,7 @@ def func_rename(dto, filePath, offset, cut):
             return
 
         old = os.path.join(os.getcwd(),filePath)
-        new = os.path.join(os.getcwd(),func_formatingFilename(filePath))
+        new = os.path.join(os.getcwd(),ioutils.formatingFilename(filePath))
         os.rename(old, new)
 
     else:
@@ -157,7 +52,7 @@ def func_rename(dto, filePath, offset, cut):
                 f = f[offset:]
                 # f = f[:cut]
 
-                new = os.path.join(path,func_formatingFilename(f))
+                new = os.path.join(path,ioutils.formatingFilename(f))
                 os.rename(old, new)
 
         except:
@@ -165,7 +60,7 @@ def func_rename(dto, filePath, offset, cut):
             dto.publishLoggerWarn('function - func_rename: could the path be wrong?')
 
         try:
-            os.rename(filePath, func_formatingDirectories(filePath))
+            os.rename(filePath, ioutils.formatingDirectories(filePath))
         except:
             pass
 
@@ -180,7 +75,7 @@ def func_replace(dto, filePath, old, new):
         for f in os.listdir(path):
             oldFile = os.path.join(path,f)
             f = f.replace(old, new)
-            newFile = os.path.join(path,func_formatingFilename(f))
+            newFile = os.path.join(path,ioutils.formatingFilename(f))
             os.rename(oldFile, newFile)
 
     except:
@@ -189,7 +84,7 @@ def func_replace(dto, filePath, old, new):
 
 
     try:
-        os.rename(filePath, func_formatingDirectories(filePath))
+        os.rename(filePath, ioutils.formatingDirectories(filePath))
     except:
         pass
 
@@ -294,7 +189,7 @@ def func_convertFilesFfmpeg(dto, fileName, newFormat, subPath, vcodec, acodec, f
         try:
             output = ''
             newFile = fileOrig.rsplit('.', 1)[0]
-            title = getTitleFormated(newFile)
+            title = ioutils.getTitleFormated(newFile)
 
             if subPath:
                 dto.publishLoggerDebug('create subPath')
@@ -450,5 +345,3 @@ def func_convertFilesFfmpeg(dto, fileName, newFormat, subPath, vcodec, acodec, f
 
             if os.path.isdir(pathFix):
                 shutil.rmtree(pathFix)
-
-

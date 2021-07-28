@@ -1,8 +1,10 @@
 import json
-import logging
 import os
+import re
 import subprocess
-import urllib.request
+from datetime import datetime
+
+import requests
 
 from dto import dto
 
@@ -58,20 +60,115 @@ def loadConfig(pathToRoot):
 def testWebpage(dto, url):
     dto.publishLoggerDebug('webpage test for: ' + url)
 
-    req = urllib.request.Request(url, headers = {'User-Agent': 'Mozilla/5.0'})
-    try:
-        conn = urllib.request.urlopen(req)
-    except urllib.error.HTTPError as e:
-        if e.code == 403:
+    req = requests.get(url, headers = {'User-Agent': 'Mozilla/5.0'})
 
-            dto.publishLoggerDebug('HTTP Error: ' + str(e.reason))
-            return 0
+    if req.status_code > 300:
+        dto.publishLoggerDebug('HTTP Error: ' + str(req.status_code))
+        return req.status_code
 
-        dto.publishLoggerDebug('HTTP Error: ' + str(e.reason))
-        return e.code
-    except urllib.error.URLError as e:
-        
-        dto.publishLoggerDebug('URL Error: ' + str(e.reason))
-        return 0
+    return 0
+
+
+# ----- # ----- # help 
+def getTitleFormated(title):
+    newTitle = ''
+
+    if title == '':
+        now = datetime.now()
+        newTitle = 'dl_' + now.strftime('%m-%d-%Y_%H-%M-%S')
+        return newTitle
     else:
-        return 0
+        newTitle = title
+
+    newTitle = formatingFilename(newTitle)
+
+    while newTitle.endswith('-'):
+        newTitle = newTitle[:-1]
+
+    while newTitle.startswith('-'):
+        newTitle = newTitle[1:]
+
+    return newTitle
+
+
+def bytes2human(n):
+    symbols = ('K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y')
+    prefix = {}
+    for i, s in enumerate(symbols):
+        prefix[s] = 1 << (i+1)*10
+    for s in reversed(symbols):
+        if n >= prefix[s]:
+            value = float(n) / prefix[s]
+            return '%.1f%s' % (value, s)
+
+    return '%sB' % n
+
+
+def human2bytes(n):
+    size = n[-1]
+
+    switcher = {
+        'B': 1,
+        'K': 1000,
+        'M': pow(1000,2),
+        'G': pow(1000,3),
+    }
+
+    swapSize = float(n[:-1]) * switcher.get(size, 0)
+
+    return '%s' % swapSize
+
+
+# ----- # ----- # formating
+def formatingDirectories(text):
+    if text.startswith('.'):
+        return
+
+    reg = re.compile(r'[^\w\d\s\-\_\/\.\|]')
+    reg3 = re.compile(r'-{3,}')
+
+    swap = text.casefold()
+    swap = re.sub(reg, '', swap)
+    swap = swap.replace(' ', '-').replace('_','-').replace('+','-').replace('|', '-')
+
+    swap = re.sub(reg3, '§', swap)
+    swap = swap.replace('--', '-')
+    swap = swap.replace('§', '---')
+
+    return swap
+
+
+def formatingFilename(text):
+    reg = re.compile(r'[^\w\d\s\-\_\/\.+|]')
+    reg3 = re.compile(r'-{3,}')
+
+    extensionsList = [
+                        '.mp4', '.mkv', '.avi', '.m4a', '.mov',
+                        '.flac', '.wav', '.mp3', '.aac',
+                        '.py', '.txt', '.md', '.pdf', '.doc', 'docx',
+                        '.iso', '.zip', '.rar',
+                        '.jpg', '.jpeg', '.svg', '.png',
+                        '.csv', '.html', '.ppt', '.pptx', '.xls', '.xlsx',
+                    ]
+
+    swap = text.casefold()
+
+    swap = re.sub(reg, '', swap)
+
+    if any(ext in swap for ext in extensionsList):
+        fileSwap = swap.rsplit('.',1)
+        swap = fileSwap[0].replace('/','').replace('.','') + '.' + fileSwap[1]
+    else:
+        swap = swap.replace('/','').replace('.','')
+
+    swap = swap.replace(' ', '-').replace('_','-').replace('+','-').replace('|','-')
+
+    swap = re.sub(reg3, '§', swap)
+    swap = swap.replace('--', '-')
+    swap = swap.replace('§', '---')
+
+    if any(ext in swap for ext in extensionsList):
+        fileSwap = swap.rsplit('.',1)
+        swap = getTitleFormated(fileSwap[0]) + '.' + fileSwap[1]
+
+    return swap

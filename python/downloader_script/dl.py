@@ -3,21 +3,18 @@
 import os
 import random
 import sys
-import time
 from datetime import datetime
 
 import bs4
 import click
 import requests
 import safer
-# import youtube_dl
-# from exitstatus import ExitStatus
 
-from downloader import *
+import downloader
+import extractor
+import functions
+import ioutils
 from dto import dto
-from functions import *
-from ioutils import *
-from extractor import *
 
 
 # ----- # ----- # time measurement
@@ -105,13 +102,13 @@ def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file, sub_lang, 
     dto.setSync(sync)
     dto.setAxel(axel)
     dto.setSingle(False)
-    dto.setPathToRoot(getRootPath(dto))
+    dto.setPathToRoot(ioutils.getRootPath(dto))
     # dto.setCredentials(credentials)
 
     if update_packages:
-        update(dto, dto.getPathToRoot())
+        ioutils.update(dto, dto.getPathToRoot())
 
-    dto.setData(loadConfig(dto.getPathToRoot()))
+    dto.setData(ioutils.loadConfig(dto.getPathToRoot()))
 
     parameters = '--retries {retries} --min-sleep-interval {min_sleep} --max-sleep-interval {max_sleep} --continue'.format(retries = retries, min_sleep = min_sleep, max_sleep = max_sleep)
     dto.setParameters(parameters)
@@ -135,7 +132,7 @@ def rename(rename, offset, cut, platform, single):
     dto.setSingle(single)
 
     for itemPath in rename:
-        func_rename(dto, itemPath, offset, cut)
+        functions.func_rename(dto, itemPath, offset, cut)
 
 
 # ----- # ----- # replace command
@@ -149,7 +146,7 @@ def rename(rename, offset, cut, platform, single):
 @click.argument('replace', nargs=-1)
 def replace(replace, old, new):
     for itemPath in replace:
-        func_replace(dto, itemPath, old, new)
+        functions.func_replace(dto, itemPath, old, new)
 
 
 # ----- # ----- # convertFiles command
@@ -180,16 +177,16 @@ def convertFiles(newformat, path, subpath, ffmpeg, vcodec, acodec, no_fix, no_re
 
                 if os.path.isfile(itemPathComplete):
                     dto.publishLoggerDebug('is File: ' + str(os.path.isfile(itemPathComplete)))
-                    func_convertFilesFfmpeg(dto, itemPathComplete, newformat, subpath, vcodec, acodec, no_fix)
+                    functions.func_convertFilesFfmpeg(dto, itemPathComplete, newformat, subpath, vcodec, acodec, no_fix)
 
 
                 if os.path.isdir(itemPathComplete):
                     dto.publishLoggerDebug('is Dir: ' + str(os.path.isdir(itemPathComplete)))
-                    func_convertDirFiles(dto, itemPathComplete, newformat, subpath, vcodec, acodec, no_fix)
+                    functions.func_convertDirFiles(dto, itemPathComplete, newformat, subpath, vcodec, acodec, no_fix)
 
                     if not no_renaming:
                         try:
-                            os.rename(itemPath, func_formatingDirectories(itemPath))
+                            os.rename(itemPath, ioutils.formatingDirectories(itemPath))
                         except:
                             pass
 
@@ -209,7 +206,7 @@ def convertFiles(newformat, path, subpath, ffmpeg, vcodec, acodec, no_fix, no_re
 
 def mergeFiles(paths, newformat):
     for path in paths:
-        func_ffmpegDirMerge(dto, path, newformat)
+        functions.func_ffmpegDirMerge(dto, path, newformat)
 
 
 # ----- # ----- # divideAndConquer command
@@ -258,7 +255,7 @@ def dnc(url, file, dir, chunck_size, reverse):
             #         print('\nremoved: ' + str(item) + ' | rest list ' + str(urlCopy))
 
             # if dl == 'aria':
-            if download_aria2c(dto, itemList, dir) == 0:
+            if downloader.download_aria2c(dto, itemList, dir) == 0:
                 for i in itemList:
                     urlCopy.remove(i)
 
@@ -315,7 +312,7 @@ def wget(wget, space, accept, reject):
                 if os.path.isfile(item):
                     wget_list(item, accept, reject)
                 else:
-                    download_wget(dto, item, accept, reject)
+                    downloader.download_wget(dto, item, accept, reject)
 
             wget = ''
             elapsedTime()
@@ -324,7 +321,7 @@ def wget(wget, space, accept, reject):
             try:
                 url = input('\nPlease enter the Url:\n')
                 dto.setTimeStart(datetime.now())
-                download_wget(dto, url, accept, reject)
+                downloader.download_wget(dto, url, accept, reject)
 
             except KeyboardInterrupt:
                 pass
@@ -364,10 +361,10 @@ def wget_list(itemList, accept, reject):
             dto.publishLoggerDebug('downloading: ' + str(item))
 
             if dto.getSync():
-                download_wget(dto, str(item), accept, reject)
+                downloader.download_wget(dto, str(item), accept, reject)
                 dto.publishLoggerInfo('finished: ' + str(item))
             else:
-                if download_wget(dto, str(item), accept, reject) == 0:
+                if downloader.download_wget(dto, str(item), accept, reject) == 0:
                     urlCopy.remove(item)
                     dto.publishLoggerDebug('removed: ' + str(item) + ' | rest list ' + str(urlCopy))
 
@@ -416,7 +413,7 @@ def ydl(url, offset):
                 if os.path.isfile(item):
                     ydl_list(item)
                 else:
-                    ydl_extractor(dto, item)
+                    extractor.ydl_extractor(dto, item)
 
             url = ''
             elapsedTime()
@@ -425,7 +422,7 @@ def ydl(url, offset):
             try:
                 url = input('\nPlease enter the Url:\n')
                 dto.setTimeStart(datetime.now())
-                ydl_extractor(dto, url)
+                extractor.ydl_extractor(dto, url)
 
             except KeyboardInterrupt:
                 pass
@@ -463,10 +460,10 @@ def ydl_list(itemList):
             dto.publishLoggerDebug('current Download: ' + item)
 
             if dto.getSync():
-                ydl_extractor(dto, str(item))
+                extractor.ydl_extractor(dto, str(item))
                 dto.publishLoggerDebug('finished: ' + str(item))
             else:
-                if ydl_extractor(dto, str(item)) == 0:
+                if extractor.ydl_extractor(dto, str(item)) == 0:
                     urlCopy.remove(item)
                     dto.publishLoggerDebug('removed: ' + str(item) + ' | rest list ' + str(urlCopy))
 

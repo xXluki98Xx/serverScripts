@@ -1,12 +1,13 @@
-import logging
 import random
 import time
-import urllib.request
-
+import os
+import subprocess
+import shutil
+import sys
 import youtube_dl
 
-from functions import *
-from ioutils import *
+import functions
+import ioutils
 
 
 # ----- # ----- #
@@ -41,7 +42,7 @@ def download_wget(dto, content, accept, reject):
             wget += ' -P {dir}'.format(dir = path)
 
         if title != '':
-            wget += ' -O {title}'.format(title = getTitleFormated(title))
+            wget += ' -O {title}'.format(title = ioutils.getTitleFormated(title))
 
         if accept != '':
             wget += ' --accept {extention}'.format(extention = accept)
@@ -106,11 +107,11 @@ def download_wget(dto, content, accept, reject):
 
         else:
             dto.publishLoggerWarn('wget - not enough space')
-            dto.publishLoggerInfo('Directory size: ' + bytes2human(int(dirSize)*1000))
-            dto.publishLoggerInfo('free Space: ' + bytes2human(freeStorage))
+            dto.publishLoggerInfo('Directory size: ' + ioutils.bytes2human(int(dirSize)*1000))
+            dto.publishLoggerInfo('free Space: ' + ioutils.bytes2human(freeStorage))
 
             if dto.getSpace():
-                func_removeFiles(dto, path, file_count_prev)
+                functions.func_removeFiles(dto, path, file_count_prev)
             return 507
 
     except KeyboardInterrupt:
@@ -130,7 +131,7 @@ def download_ydl(dto, content, parameters, output, stringReferer):
         parameters += ' --external-downloader axel'
 
         if dto.getBandwidth() != '0':
-            parameters += ' --external-downloader-args "-s {}"'.format(human2bytes(dto.getBandwidth()))
+            parameters += ' --external-downloader-args "-s {}"'.format(ioutils.human2bytes(dto.getBandwidth()))
 
     if stringReferer != '':
         parameters += ' --referer "{reference}"'.format(reference = stringReferer)

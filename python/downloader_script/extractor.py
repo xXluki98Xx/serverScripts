@@ -6,9 +6,9 @@ import os
 
 import youtube_dl
 
-from downloader import *
+import downloader
+import ioutils
 from functions import *
-from ioutils import *
 
 
 # ----- # ----- #
@@ -69,9 +69,9 @@ def ydl_extractor(dto, content):
             url = content
             directory = ''
 
-        return download_aria2c_magnet(dto, url, directory)
+        return downloader.download_aria2c_magnet(dto, url, directory)
 
-    webpageResult = testWebpage(dto, url.split('?')[0])
+    webpageResult = ioutils.testWebpage(dto, url.split('?')[0])
     if webpageResult != 0:
         return webpageResult
 
@@ -89,12 +89,12 @@ def ydl_extractor(dto, content):
             return host_hahomoe(dto, url, title, stringReferer, directory)
         else:
             i = 1
-            while testWebpage(dto, url+'/'+str(i)) == 0:
+            while ioutils.testWebpage(dto, url+'/'+str(i)) == 0:
                 ydl_extractor(dto, url+'/'+str(i))
                 i += 1
 
             i = 1
-            while testWebpage(dto, url+'/s'+str(i)) == 0:
+            while ioutils.testWebpage(dto, url+'/s'+str(i)) == 0:
                 ydl_extractor(dto, url+'/s'+str(i))
                 i += 1
 
@@ -136,43 +136,43 @@ def host_default(dto, content, title, stringReferer, directory):
 
                     dto.publishLoggerDebug('extracted filename: ' + filename)
 
-                filename = getTitleFormated(filename)
+                filename = ioutils.getTitleFormated(filename)
 
                 output = '--format best --no-playlist --output "{dir}/{title}.%(ext)s"'.format(title = filename, dir = directory)
-                return download_ydl(dto, content, dto.getParameters(), output, stringReferer)
+                return downloader.download_ydl(dto, content, dto.getParameters(), output, stringReferer)
             else:
-                filename = getTitleFormated(title)
+                filename = ioutils.getTitleFormated(title)
 
                 output = '--format best --no-playlist --output "{dir}/{title}.%(ext)s"'.format(title = filename, dir = directory)
-                return download_ydl(dto, content, dto.getParameters(), output, stringReferer)
+                return downloader.download_ydl(dto, content, dto.getParameters(), output, stringReferer)
 
         except:
             output = '--format best --no-playlist --output "{dir}/%(title)s.%(ext)s"'.format(dir = directory)
-            return download_ydl(dto, content, dto.getParameters(), output, stringReferer)
+            return downloader.download_ydl(dto, content, dto.getParameters(), output, stringReferer)
 
     else:
         output = '--ignore-errors --format best --output "{dir}/%(extractor)s--%(playlist_uploader)s_%(playlist_title)s/%(playlist_index)s_%(title)s.%(ext)s"'.format(dir = directory)
-        return download_ydl(dto, content, dto.getParameters(), output, stringReferer)
+        return downloader.download_ydl(dto, content, dto.getParameters(), output, stringReferer)
 
 
 def host_mostly(dto, content, title, stringReferer, directory):
     if title == '':
         title = str(input('\nPlease enter the Title:\n'))
 
-    title = getTitleFormated(title)
+    title = ioutils.getTitleFormated(title)
     output = '--format best --output "{dir}/{title}.%(ext)s"'.format(title = title, dir = directory)
 
-    return download_ydl(dto, content, dto.getParameters(), output, stringReferer)
+    return downloader.download_ydl(dto, content, dto.getParameters(), output, stringReferer)
 
 
 def host_hanime(dto, content, title, stringReferer, directory):
     if title == '':
         title = content.rsplit('?',1)[0].rsplit('/',1)[1]
 
-    title = getTitleFormated(title)
+    title = ioutils.getTitleFormated(title)
     output = '--format best --output "{dir}/{title}.%(ext)s"'.format(title = title, dir = directory)
 
-    return download_ydl(dto, content, dto.getParameters(), output, stringReferer)
+    return downloader.download_ydl(dto, content, dto.getParameters(), output, stringReferer)
 
 
 def host_hahomoe(dto, content, title, stringReferer, directory):
@@ -190,7 +190,7 @@ def host_hahomoe(dto, content, title, stringReferer, directory):
         else:
             title = ''
 
-        title = getTitleFormated(title)
+        title = ioutils.getTitleFormated(title)
         dto.publishLoggerDebug(title)
 
     res2 = requests.get(url2, allow_redirects=False, cookies=res.cookies)
@@ -199,7 +199,7 @@ def host_hahomoe(dto, content, title, stringReferer, directory):
 
     output = '--format best --output "{dir}/{title}.mp4"'.format(title = title, dir = directory)
 
-    return download_ydl(dto, url, dto.getParameters(), output, stringReferer)
+    return downloader.download_ydl(dto, url, dto.getParameters(), output, stringReferer)
 
 
 def host_sxyprn(dto, content, title, stringReferer, directory):
@@ -218,30 +218,30 @@ def host_sxyprn(dto, content, title, stringReferer, directory):
         if '#' in title:
             title = title.split('-#',1)[0]
 
-    title = getTitleFormated(title)
+    title = ioutils.getTitleFormated(title)
     output = '--format best --output "{dir}/{title}.%(ext)s"'.format(title = title, dir = directory)
 
-    return download_ydl(dto, content, dto.getParameters(), output, stringReferer)
+    return downloader.download_ydl(dto, content, dto.getParameters(), output, stringReferer)
 
 
 def host_xvideos(dto, content, title, stringReferer, directory):
     if title == '':
         title = content.rsplit('/',1)[1]
 
-    title = getTitleFormated(title)
+    title = ioutils.getTitleFormated(title)
     output = '--format best --output "{dir}/{title}.mp4"'.format(title = title, dir = directory)
 
-    return download_ydl(dto, content, dto.getParameters(), output, stringReferer)
+    return downloader.download_ydl(dto, content, dto.getParameters(), output, stringReferer)
 
 
 def host_porngo(dto, content, title, stringReferer, directory):
     if title == '':
         title = content.rsplit('/',1)[0].rsplit('/',1)[1]
 
-    title = getTitleFormated(title)
+    title = ioutils.getTitleFormated(title)
     output = '--format best --output "{dir}/{title}.%(ext)s"'.format(title = title, dir = directory)
 
-    return download_ydl(dto, content, dto.getParameters(), output, stringReferer)
+    return downloader.download_ydl(dto, content, dto.getParameters(), output, stringReferer)
 
 
 def host_animeondemand(dto, content, title, stringReferer, directory):
@@ -255,7 +255,7 @@ def host_animeondemand(dto, content, title, stringReferer, directory):
     output = getLanguage(dto, 'animeondemand')
     output += ' --output "{dir}/%(playlist)s/episode-%(playlist_index)s.%(ext)s"'
 
-    return download_ydl(dto, content, parameters, output, stringReferer)
+    return downloader.download_ydl(dto, content, parameters, output, stringReferer)
 
 
 def host_crunchyroll(dto, content, title, stringReferer, directory):
@@ -276,7 +276,7 @@ def host_crunchyroll(dto, content, title, stringReferer, directory):
     output = getLanguage(dto, 'crunchyroll')
     output += ' --ignore-errors --output "{dir}/%(playlist)s/season-%(season_number)s-episode-%(episode_number)s-%(episode)s.%(ext)s"'.format(dir = directory)
 
-    return download_ydl(dto, content, parameters, output, stringReferer)
+    return downloader.download_ydl(dto, content, parameters, output, stringReferer)
 
 
 def host_crunchyroll_sync(dto, content, title, stringReferer, directory):
@@ -313,7 +313,7 @@ def host_crunchyroll_sync(dto, content, title, stringReferer, directory):
         syncOutput += ' --playlist-start %d' % dto.getOffset()
     syncOutput += ' --ignore-errors --output "{dir}/%(playlist)s/season-%(season_number)s-episode-%(episode_number)s/audio-%(autonumber)s-%(episode)s.%(ext)s"'.format(dir = directory)
 
-    download_ydl(dto, content, parameters, syncOutput, stringReferer)
+    downloader.download_ydl(dto, content, parameters, syncOutput, stringReferer)
 
     output = '--no-mark-watched --hls-prefer-ffmpeg --socket-timeout 15'
     output += ' --format "best[format_id*=adaptive_hls-audio-jaJP][format_id!*=hardsub]"'
@@ -321,7 +321,7 @@ def host_crunchyroll_sync(dto, content, title, stringReferer, directory):
     # output += ' --merge-output-format mkv --recode-video mkv'
     output += ' --ignore-errors --output "{dir}/%(playlist)s/season-%(season_number)s-episode-%(episode_number)s/video-%(episode)s.%(ext)s"'.format(dir = directory)
 
-    download_ydl(dto, content, parameters, output, stringReferer)
+    downloader.download_ydl(dto, content, parameters, output, stringReferer)
 
 
 def host_udemy(dto, content, title, stringReferer, directory):
@@ -341,7 +341,7 @@ def host_udemy(dto, content, title, stringReferer, directory):
 
     output = '--format best --output "{dir}/%(playlist)s - {title}/%(chapter_number)s-%(chapter)s/%(playlist_index)s-%(title)s.%(ext)s"'.format(title = title, dir = directory)
 
-    return download_ydl(dto, content, parameter, output, stringReferer)
+    return downloader.download_ydl(dto, content, parameter, output, stringReferer)
 
 
 def host_vimeo(dto, content, title, stringReferer, directory):
@@ -352,17 +352,17 @@ def host_vimeo(dto, content, title, stringReferer, directory):
         stringReferer = str(input('\nPlease enter the reference URL:\n'))
 
     content = content.split('?')[0]
-    title = getTitleFormated(title)
+    title = ioutils.getTitleFormated(title)
     output = '--format best --output "{dir}/{title}.%(ext)s"'.format(title = title, dir = directory)
 
-    return download_ydl(dto, content, dto.getParameters(), output, stringReferer)
+    return downloader.download_ydl(dto, content, dto.getParameters(), output, stringReferer)
 
 
 def host_cloudfront(dto, content, title, stringReferer, directory):
     if title == '':
         title = str(input('\nPlease enter the Title:\n'))
 
-    title = getTitleFormated(title)
+    title = ioutils.getTitleFormated(title)
     output = '--format best --output "{dir}/{title}.mp4"'.format(title = title, dir = directory)
 
-    return download_ydl(dto, content, dto.getParameters(), output, stringReferer)
+    return downloader.download_ydl(dto, content, dto.getParameters(), output, stringReferer)
