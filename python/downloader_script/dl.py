@@ -75,6 +75,7 @@ def chunks(lst, n):
 @click.option('-v', '--verbose', default=False, is_flag=True, help='Verbose mode')
 @click.option('-cr', '--credentials', default=False, is_flag=True, help='Need Credentials')
 @click.option('-s', '--single', default=False, is_flag=True, help='close after finish')
+@click.option('-sc', '--skip-checks', default=False, is_flag=True, help='skip checks')
 
 # int
 @click.option('--retries', default=5, help='Enter an Number for Retries')
@@ -88,7 +89,7 @@ def chunks(lst, n):
 @click.option('-dl','--dub-lang', default='', help='Enter language Code (de / en)')
 @click.option('-d', '--debug', default='', help='Using Logging mode')
 
-def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file, sub_lang, dub_lang, playlist, no_remove, update_packages, debug, sync, verbose, single, credentials):
+def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file, sub_lang, dub_lang, playlist, no_remove, update_packages, debug, sync, verbose, single, credentials, skip_checks):
     global dto
     dto = dto()
     dto.setVerbose(verbose)
@@ -103,6 +104,8 @@ def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file, sub_lang, 
     dto.setSync(sync)
     dto.setAxel(axel)
     dto.setSingle(single)
+    dto.setSingle(False)
+    dto.setSkipChecks(skip_checks)
     dto.setPathToRoot(ioutils.getRootPath(dto))
     # dto.setBreak(break)
     # dto.setCredentials(credentials)
@@ -432,7 +435,7 @@ def ydl(url, offset):
         if dto.getSingle():
             repeat = False
             break
-        
+
         try:
             answer = input('\nDo you wish another Turn? (y | n):\n')
             if ('y' in answer) :
