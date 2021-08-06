@@ -172,3 +172,9 @@ def formatingFilename(text):
         swap = getTitleFormated(fileSwap[0]) + '.' + fileSwap[1]
 
     return swap
+
+
+# ----- # ----- # time measurement
+def elapsedTime(dto):
+    time_elapsed = datetime.now() - dto.getTimeStart()
+    dto.publishLoggerInfo('Time elapsed (hh:mm:ss.ms): {}'.format(time_elapsed))
