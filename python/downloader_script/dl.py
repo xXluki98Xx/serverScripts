@@ -11,16 +11,12 @@ import requests
 import safer
 
 import downloader
-import extractor
 import functions
 import ioutils
+import workflow_ydl
+import workflow_wget
+import workflow_animescrapper
 from dto import dto
-
-
-# ----- # ----- # time measurement
-def elapsedTime():
-    time_elapsed = datetime.now() - dto.getTimeStart()
-    dto.publishLoggerInfo('Time elapsed (hh:mm:ss.ms): {}'.format(time_elapsed))
 
 
 # ----- # ----- #
@@ -63,7 +59,7 @@ def chunks(lst, n):
 
 # - - - - - # - - - - - # - - - - - # - - - - - # main functions
 
-# ----- # ----- # main
+# - - - - - # - - - - - # main
 @click.group()
 
 # switch
@@ -116,7 +112,7 @@ def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file, sub_lang, 
     dto.setParameters(parameters)
 
 
-# ----- # ----- # rename command
+# - - - - - # - - - - - # rename command
 @main.command(help='Path for rename, not file')
 
 # string
@@ -137,7 +133,7 @@ def rename(rename, offset, cut, platform, single):
         functions.func_rename(dto, itemPath, offset, cut)
 
 
-# ----- # ----- # replace command
+# - - - - - # - - - - - # replace command
 @main.command(help='Path, old String, new String')
 
 # string
@@ -151,7 +147,7 @@ def replace(replace, old, new):
         functions.func_replace(dto, itemPath, old, new)
 
 
-# ----- # ----- # convertFiles command
+# - - - - - # - - - - - # convertFiles command
 @main.command(help='Path for convert, not file')
 
 # switch
@@ -196,10 +192,10 @@ def convertFiles(newformat, path, subpath, ffmpeg, vcodec, acodec, no_fix, no_re
         except:
             dto.publishLoggerError('convertfiles - error at ffmpeg: ' + str(sys.exc_info()))
 
-    elapsedTime()
+    ioutils.elapsedTime(dto)
 
 
-# ----- # ----- #
+# - - - - - # - - - - - #
 @main.command(help='Path for fileMerging, not file')
 
 # arguments
@@ -211,7 +207,7 @@ def mergeFiles(paths, newformat):
         functions.func_ffmpegDirMerge(dto, path, newformat)
 
 
-# ----- # ----- # divideAndConquer command
+# - - - - - # - - - - - # divideAndConquer command
 @main.command(help='')
 
 # switch
@@ -268,7 +264,7 @@ def dnc(url, file, dir, chunck_size, reverse):
                 for url in urlCopy:
                     f.write('%s\n' % url)
             dto.publishLoggerWarn('Interupt by User')
-            elapsedTime()
+            ioutils.elapsedTime(dto)
             os._exit(1)
             break
 
@@ -281,16 +277,10 @@ def dnc(url, file, dir, chunck_size, reverse):
                 for url in urlCopy:
                     f.write('%s\n' % url)
 
-    elapsedTime()
+    ioutils.elapsedTime(dto)
 
 
-# - - - - - # - - - - - # - - - - - # - - - - - #
-# - - - - - #                       # - - - - - #
-# - - - - - #       wget-download   # - - - - - #
-# - - - - - #                       # - - - - - #
-# - - - - - # - - - - - # - - - - - # - - - - - #
-
-# ----- # ----- # wget
+# - - - - - # - - - - - # wget
 @main.command(help='Enter an URL')
 
 # switch
@@ -306,97 +296,10 @@ def wget(wget, space, accept, reject):
     dto.publishLoggerDebug('wget')
     dto.setSpace(space)
 
-    repeat = True
-
-    while repeat:
-        if wget != '':
-            for item in wget:
-                if os.path.isfile(item):
-                    wget_list(item, accept, reject)
-                else:
-                    downloader.download_wget(dto, item, accept, reject)
-
-            wget = ''
-            elapsedTime()
-
-        else:
-            try:
-                url = input('\nPlease enter the Url:\n')
-                dto.setTimeStart(datetime.now())
-                downloader.download_wget(dto, url, accept, reject)
-
-            except KeyboardInterrupt:
-                pass
-
-        try:
-            answer = input('\nDo you wish another Turn? (y | n):\n')
-            if ('y' in answer) :
-                repeat = True
-                wget = ''
-            else:
-                repeat = False
-
-        except KeyboardInterrupt:
-            repeat = False
+    workflow_wget.wget(dto, wget)
 
 
-# ----- # ----- #
-def wget_list(itemList, accept, reject):
-    with safer.open(itemList) as f:
-        urlList = f.readlines()
-        urlList = [x.strip() for x in urlList]
-
-    urlCopy = urlList.copy()
-
-    if dto.getSync():
-        random.shuffle(urlList)
-
-    for item in urlList:
-
-        dto.publishLoggerDebug('wget list: ' + str(urlList))
-
-        try:
-            if item.startswith('#') or item == '':
-                urlCopy.remove(item)
-                continue
-
-            dto.publishLoggerDebug('downloading: ' + str(item))
-
-            if dto.getSync():
-                downloader.download_wget(dto, str(item), accept, reject)
-                dto.publishLoggerInfo('finished: ' + str(item))
-            else:
-                if downloader.download_wget(dto, str(item), accept, reject) == 0:
-                    urlCopy.remove(item)
-                    dto.publishLoggerDebug('removed: ' + str(item) + ' | rest list ' + str(urlCopy))
-
-        except KeyboardInterrupt:
-            if not dto.getSync():
-                with safer.open(itemList, 'w') as f:
-                    for url in urlCopy:
-                        f.write('%s\n' % url)
-            dto.publishLoggerWarn('Interupt by User')
-            elapsedTime()
-            os._exit(1)
-
-        except:
-            dto.publishLoggerError('wget - error at list: ' + str(sys.exc_info()))
-
-        finally:
-            # will always be executed last, with or without exception
-            if not dto.getSync():
-                with safer.open(itemList, 'w') as f:
-                    for url in urlCopy:
-                        f.write('%s\n' % url)
-
-
-# - - - - - # - - - - - # - - - - - # - - - - - #
-# - - - - - #                       # - - - - - #
-# - - - - - #   youtube-download    # - - - - - #
-# - - - - - #                       # - - - - - #
-# - - - - - # - - - - - # - - - - - # - - - - - #
-
-# ----- # ----- # single URL
+# - - - - - # - - - - - # youtube-dl
 @main.command(help='Enter an URL for YoutubeDL')
 
 #String
@@ -407,94 +310,27 @@ def wget_list(itemList, accept, reject):
 def ydl(url, offset):
     dto.setOffset(offset)
 
-    repeat = True
-
-    while repeat:
-        if url != '':
-            for item in url:
-                if os.path.isfile(item):
-                    ydl_list(item)
-                else:
-                    extractor.ydl_extractor(dto, item)
-
-            url = ''
-            elapsedTime()
-
-        else:
-            try:
-                url = input('\nPlease enter the Url:\n')
-                dto.setTimeStart(datetime.now())
-                extractor.ydl_extractor(dto, url)
-
-            except KeyboardInterrupt:
-                pass
-
-        if dto.getSingle():
-            repeat = False
-            break
-        
-        try:
-            answer = input('\nDo you wish another Turn? (y | n):\n')
-            if ('y' in answer) :
-                repeat = True
-                url = ''
-            else:
-                repeat = False
-
-        except KeyboardInterrupt:
-            repeat = False
+    workflow_ydl.ydl(dto, url)
 
 
-# ----- # ----- # list
-def ydl_list(itemList):
-    with safer.open(itemList) as f:
-        urlList = f.readlines()
-        urlList = [x.strip() for x in urlList]
+# - - - - - # - - - - - # Anime
+@main.command(help='Enter an URL for YoutubeDL')
 
-    urlCopy = urlList.copy()
+#String
+@click.option('-g', '--group', default='re', help='Sub Group')
+@click.option('-s', '--show', default='', help='Anime Show')
+@click.option('-q', '--quality', default='1080', help='Video Quality')
+@click.option('-a', '--start', default='1', help='first Episode')
+@click.option('-z', '--end', default='12', help='last Episode')
+@click.option('-d', '--dir', default='', help='Path to be downloaded')
 
-    dto.publishLoggerDebug('youtube-dl')
-    dto.publishLoggerDebug('ydl list: ' + str(urlCopy))
+#Switch
+@click.option('-f', '--file', default=False, is_flag=True, help='download .torrent files')
 
-    for item in urlList:
-
-        try:
-            if item.startswith('#') or item == '':
-                urlCopy.remove(item)
-                continue
-
-            dto.publishLoggerDebug('current Download: ' + item)
-
-            if dto.getSync():
-                extractor.ydl_extractor(dto, str(item))
-                dto.publishLoggerDebug('finished: ' + str(item))
-            else:
-                if extractor.ydl_extractor(dto, str(item)) == 0:
-                    urlCopy.remove(item)
-                    dto.publishLoggerDebug('removed: ' + str(item) + ' | rest list ' + str(urlCopy))
-
-        except KeyboardInterrupt:
-            dto.publishLoggerDebug('Interupt by User')
-            if not dto.getSync():
-                with safer.open(itemList, 'w') as f:
-                    for url in urlCopy:
-                        f.write('%s\n' % url)
-            elapsedTime()
-            os._exit(1)
-
-        except:
-            dto.publishLoggerError('error at ydl list: ' + str(sys.exc_info()))
-
-        finally:
-            # will always be executed last, with or without exception
-            if not dto.getSync():
-                with safer.open(itemList, 'w') as f:
-                    for url in urlCopy:
-                        f.write('%s\n' % url)
-
-    elapsedTime()
+def anime(group, show, quality, start, end, file, dir):
+    workflow_animescrapper.anime(dto, group, show, quality, start, end, file, dir)
 
 
-# - - - - - # - - - - - # - - - - - # - - - - - # main
+# - - - - - # - - - - - # main
 if __name__ == '__main__':
     main()
