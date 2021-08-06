@@ -33,6 +33,7 @@ class dto():
         self.boolean_space = False
         self.boolean_credential = False
         self.boolean_break = False
+        self.boolean_skip_checks = False
 
         self.time_start = datetime.now()
 
@@ -70,7 +71,7 @@ class dto():
         return self.string_pathtoroot
     def setPathToRoot(self, swap):
         self.string_pathtoroot = swap
-    
+
     def getCookieFile(self):
         return self.string_cookiefile
     def setCookieFile(self, swap):
@@ -144,6 +145,11 @@ class dto():
     def setBreak(self, swap):
         self.boolean_break = swap
 
+    def getSkipChecks(self):
+        return self.boolean_skip_checks
+    def setSkipChecks(self, swap):
+        self.boolean_skip_checks = swap
+
 
 # ----- # ----- # Time
     def getTimeStart(self):
@@ -157,7 +163,7 @@ class dto():
         return self.json_data
     def setData(self, swap):
         self.json_data = swap
-        
+
 
 # ----- # ----- # Logging
     def get_console_handler(self):
@@ -169,17 +175,17 @@ class dto():
         file_handler = TimedRotatingFileHandler(self.logger_file, when='midnight')
         file_handler.setFormatter(self.logger_formatter)
         return file_handler
-    
+
     def get_logger(self):
         logger = logging.getLogger(__name__)
 
         if not logger.handlers:
             logger.setLevel(self.logger_level) # better to have too much log than not enough
             logger.addHandler(self.get_file_handler())
-            
+
             if self.getVerbose():
                 logger.addHandler(self.get_console_handler())
-            
+
         else:
             for h in logger.handlers:
                 logger.removeHandler(h)

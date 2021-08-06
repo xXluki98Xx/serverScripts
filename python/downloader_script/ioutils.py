@@ -27,7 +27,7 @@ def getRootPath(dto):
         pathToRoot = os.getcwd()
 
 
-    dto.publishLoggerDebug('rootpath is: ' + pathToRoot)    
+    dto.publishLoggerDebug('rootpath is: ' + pathToRoot)
     return pathToRoot
 
 
@@ -58,18 +58,19 @@ def loadConfig(pathToRoot):
 
 # ----- # ----- #
 def testWebpage(dto, url):
-    dto.publishLoggerDebug('webpage test for: ' + url)
+    if not dto.getSkipChecks():
+        dto.publishLoggerDebug('webpage test for: ' + url)
 
-    req = requests.get(url, headers = {'User-Agent': 'Mozilla/5.0'})
+        req = requests.get(url, headers = {'User-Agent': 'Mozilla/5.0'})
 
-    if req.status_code > 300:
-        dto.publishLoggerDebug('HTTP Error: ' + str(req.status_code))
-        return req.status_code
+        if req.status_code > 300:
+            dto.publishLoggerDebug('HTTP Error: ' + str(req.status_code))
+            return req.status_code
 
     return 0
 
 
-# ----- # ----- # help 
+# ----- # ----- # help
 def getTitleFormated(title):
     newTitle = ''
 
