@@ -320,7 +320,7 @@ def ydl(url, offset):
 @main.command(help='Enter an URL for YoutubeDL')
 
 #String
-@click.option('-g', '--group', default='re', help='Sub Group')
+@click.option('-g', '--group', default='er', help='Sub Group')
 @click.option('-s', '--show', default='', help='Anime Show')
 @click.option('-q', '--quality', default='1080', help='Video Quality')
 @click.option('-a', '--start', default='1', help='first Episode')

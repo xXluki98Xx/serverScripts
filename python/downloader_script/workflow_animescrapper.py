@@ -97,4 +97,4 @@ def usage_error(dto):
 
 
 def anime(dto, group_name, show_name, quality, start_ep, end_ep, req_file, dir):
-    download(dto, groups.get(group_name), show_name, quality, start_ep, end_ep, req_file, dir)
+    download(dto, groups.get(group_name, groups['er']), show_name, quality, start_ep, end_ep, req_file, dir)
