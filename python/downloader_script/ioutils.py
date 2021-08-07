@@ -56,6 +56,56 @@ def loadConfig(pathToRoot):
     return data
 
 
+def getMainParametersFromDto(dto):
+    parameters = ''
+
+    # switches
+    if dto.getVerbose():
+        parameters += ' --verbose'
+
+    if dto.getAxel():
+        parameters += ' --axel'
+
+    if dto.getCredentials():
+        parameters += ' --credentials'
+
+    if dto.getPlaylist():
+        parameters += ' --playlist'
+
+    if dto.getRemoveFiles():
+        parameters += ' --no-remove'
+
+    if dto.getSingle():
+        parameters += ' --single'
+
+    if dto.getSkipChecks():
+        parameters += ' --skip-checks'
+
+    if dto.getSync():
+        parameters += ' --sync'
+
+    
+    # int
+    if dto.getBandwidth():
+        parameters += ' --bandwidth ' + dto.getBandwidth()
+
+
+    # string
+    if dto.getCookieFile() != '':
+        parameters += ' --cookie-file ' + dto.getCookieFile()
+
+    if dto.getLogging() != '':
+        parameters += ' --debug ' + dto.getLogging()
+
+    if dto.getDubLang() != '':
+        parameters += ' --dub-lang ' + dto.getDubLang()
+
+    if dto.getSubLang() != '':
+        parameters += ' --sub-lang ' + dto.getSubLang()
+
+    return parameters
+
+
 # ----- # ----- #
 def testWebpage(dto, url):
     if not dto.getSkipChecks():

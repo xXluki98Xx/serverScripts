@@ -15,6 +15,7 @@ import functions
 import ioutils
 import workflow_ydl
 import workflow_wget
+import workflow_watcher
 import workflow_animescrapper
 from dto import dto
 
@@ -63,48 +64,49 @@ def chunks(lst, n):
 @click.group()
 
 # switch
-@click.option('-a', '--axel', default=False, is_flag=True, help='Using Axel')
-@click.option('-p', '--playlist', default=False, is_flag=True, help='Playlist')
-@click.option('-nr', '--no-remove', default=False, is_flag=True, help='remove Files at wget')
-@click.option('-up', '--update-packages', default=False, is_flag=True, help='updates packages listed in requirements.txt')
-@click.option('-sy', '--sync', default=False, is_flag=True, help='')
 @click.option('-v', '--verbose', default=False, is_flag=True, help='Verbose mode')
+@click.option('-a', '--axel', default=False, is_flag=True, help='Using Axel')
 @click.option('-cr', '--credentials', default=False, is_flag=True, help='Need Credentials')
+@click.option('-nr', '--no-remove', default=False, is_flag=True, help='remove Files at wget')
+@click.option('-p', '--playlist', default=False, is_flag=True, help='Playlist')
 @click.option('-s', '--single', default=False, is_flag=True, help='close after finish')
 @click.option('-sc', '--skip-checks', default=False, is_flag=True, help='skip checks')
+@click.option('-sy', '--sync', default=False, is_flag=True, help='')
+@click.option('-up', '--update-packages', default=False, is_flag=True, help='updates packages listed in requirements.txt')
 
 # int
-@click.option('--retries', default=5, help='Enter an Number for Retries')
-@click.option('--min-sleep', default=2, help='Enter an Number for min-Sleep between retries/ downloads')
-@click.option('--max-sleep', default=15, help='Enter an Number for max-Sleep between retries/ downloads')
 @click.option('-bw','--bandwidth', default='0', help='Enter an Bandwidthlimit like 1.5M')
+@click.option('--max-sleep', default=15, help='Enter an Number for max-Sleep between retries/ downloads')
+@click.option('--min-sleep', default=2, help='Enter an Number for min-Sleep between retries/ downloads')
+@click.option('--retries', default=5, help='Enter an Number for Retries')
 
 # string
 @click.option('-cf','--cookie-file', default='', help='Enter Path to cookie File')
-@click.option('-sl','--sub-lang', default='', help='Enter language Code (de / en)')
-@click.option('-dl','--dub-lang', default='', help='Enter language Code (de / en)')
 @click.option('-d', '--debug', default='', help='Using Logging mode')
+@click.option('-dl','--dub-lang', default='', help='Enter language Code (de / en)')
+@click.option('-sl','--sub-lang', default='', help='Enter language Code (de / en)')
 
 def main(retries, min_sleep, max_sleep, bandwidth, axel, cookie_file, sub_lang, dub_lang, playlist, no_remove, update_packages, debug, sync, verbose, single, credentials, skip_checks):
     global dto
     dto = dto()
-    dto.setVerbose(verbose)
     dto.setLogger(debug)
 
-    dto.setBandwidth(bandwidth)
-    dto.setSubLang(sub_lang)
-    dto.setDubLang(dub_lang)
-    dto.setCookieFile(cookie_file)
+    dto.setVerbose(verbose)
+    dto.setAxel(axel)
+    # dto.setCredentials(credentials)
     dto.setPlaylist(playlist)
     dto.setRemoveFiles(no_remove)
-    dto.setSync(sync)
-    dto.setAxel(axel)
     dto.setSingle(single)
-    dto.setSingle(False)
     dto.setSkipChecks(skip_checks)
+    dto.setSync(sync)
+
+    dto.setBandwidth(bandwidth)
+
+    dto.setCookieFile(cookie_file)
+    dto.setDubLang(dub_lang)
+    dto.setSubLang(sub_lang)
+
     dto.setPathToRoot(ioutils.getRootPath(dto))
-    # dto.setBreak(break)
-    # dto.setCredentials(credentials)
 
     if update_packages:
         ioutils.update(dto, dto.getPathToRoot())
@@ -333,6 +335,20 @@ def ydl(url, offset):
 def anime(group, show, quality, start, end, file, dir):
     workflow_animescrapper.anime(dto, group, show, quality, start, end, file, dir)
 
+
+# - - - - - # - - - - - # Anime
+@main.command(help='Enter an dl.py Command (String) to be run as Watcher, Time is used as time between.')
+
+#String
+@click.option('-m', '--minutes', default='5', help='minutes')
+@click.option('-h', '--hours', default='0', help='hours')
+
+#Switch
+# @click.option('-f', '--file', default=False, is_flag=True, help='download .torrent files')
+
+@click.argument('watcher', nargs=1)
+def watcher(watcher, minutes, hours):
+    workflow_watcher.watcher(dto, watcher, minutes, hours)
 
 # - - - - - # - - - - - # main
 if __name__ == '__main__':
