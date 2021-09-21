@@ -205,11 +205,11 @@ def host_hahomoe(dto, content, title, stringReferer, directory):
 
 def host_sxyprn(dto, content, title, stringReferer, directory):
     url = content
+    stringReferer = content
     webpage = ''
 
-    req = urllib.request.Request(url, headers = {'User-Agent': 'Mozilla/5.0'})
-    with urllib.request.urlopen(req) as response:
-        webpage = response.read()
+    req = requests.get(url, allow_redirects=False)
+    webpage = req.text
 
     if title == '':
         title = str(webpage).split('<title>')[1].split('</title>')[0]
@@ -220,7 +220,13 @@ def host_sxyprn(dto, content, title, stringReferer, directory):
             title = title.split('-#',1)[0]
 
     title = ioutils.getTitleFormated(title)
-    output = '--format best --output "{dir}/{title}.%(ext)s"'.format(title = title, dir = directory)
+
+    url = re.findall("<span style='display:none' class='vidsnfo' data-vnfo='{(.*):(.+)}'><\/span>", webpage)[0][1]
+    url = url.replace('"', '').replace('\\', '').split('/')
+    url[1] = 'cdn8'
+
+    content = 'https://sxyprn.com' + '/'.join(url)
+    output = '--format best --output "{dir}/{title}.mp4"'.format(title = title, dir = directory)
 
     return downloader.download_ydl(dto, content, dto.getParameters(), output, stringReferer)
 
