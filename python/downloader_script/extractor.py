@@ -107,6 +107,7 @@ def ydl_extractor(dto, content):
     if ('udemy' in url) : return host_udemy(dto, url, title, stringReferer, directory)
     if ('vimeo' in url) : return host_vimeo(dto, url, title, stringReferer, directory)
     if ('cloudfront' in url) : return host_cloudfront(dto, url, title, stringReferer, directory)
+    if ('pluralsight' in url) : return host_pluralsight(dto, url, title, stringReferer, directory)
 
     if ('crunchyroll' in url) :
         if dto.getSync():
@@ -366,3 +367,21 @@ def host_cloudfront(dto, content, title, stringReferer, directory):
     output = '--format best --output "{dir}/{title}.mp4"'.format(title = title, dir = directory)
 
     return downloader.download_ydl(dto, content, dto.getParameters(), output, stringReferer)
+
+
+def host_pluralsight(dto, content, title, stringReferer, directory):
+    parameter = dto.getParameters()
+    
+    pattern = "--retries [0-9]{1,}(.+) --continue"
+    parameter = parameter.replace(re.sub(pattern, r"\1", parameter), '')
+
+    parameter += getUserCredentials(dto, 'pluralsight')
+
+    title = content.split('/')[5]
+
+    dto.publishLoggerDebug('pluralsight title: ' + str(title))
+    dto.publishLoggerDebug('pluralsight url: ' + content)
+
+    output = '--min-sleep-interval 120 --max-sleep-interval 240 --format best --output "{dir}/%(playlist)s - {title}/%(chapter_number)s-%(chapter)s/%(playlist_index)s-%(title)s.%(ext)s"'.format(title = title, dir = directory)
+
+    return downloader.download_ydl(dto, content, parameter, output, stringReferer)
