@@ -16,13 +16,16 @@ def getRootPath(dto):
     try:
         path = os.getenv('PATH').split(':')
 
-        for subPath in path:
-            pathTest = subprocess.check_output(['find', subPath, '-name', 'dl.py']).decode('utf-8')
-            if pathTest != '':
-                pathToRoot = pathTest
-                break
+        names = ['dl', 'dl.py']
 
-        pathToRoot = pathToRoot.replace('dl.py','').rstrip('\n')
+        for name in names:
+            for subPath in path:
+                pathTest = subprocess.check_output(['find', subPath, '-name', name]).decode('utf-8')
+                if pathTest != '':
+                    pathToRoot = pathTest
+                    break
+
+            pathToRoot = pathToRoot.replace(name,'').rstrip('\n')
     except:
         pathToRoot = os.getcwd()
 
