@@ -1,11 +1,12 @@
 import os
-import safer
 import random
-
-import ioutils
-import downloader
-
+import sys
 from datetime import datetime
+
+import safer
+
+import downloader
+import ioutils
 
 
 def wget(dto, wget, accept, reject):
@@ -30,7 +31,11 @@ def wget(dto, wget, accept, reject):
 
             except KeyboardInterrupt:
                 pass
-
+        
+        if dto.getSingle():
+            repeat = False
+            break
+        
         try:
             answer = input('\nDo you wish another Turn? (y | n):\n')
             if ('y' in answer) :
