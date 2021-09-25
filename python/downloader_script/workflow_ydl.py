@@ -1,7 +1,10 @@
 import os
-import extractor
+import sys
 from datetime import datetime
+
 import safer
+
+import extractor
 import ioutils
 
 

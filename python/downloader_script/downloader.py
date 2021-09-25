@@ -1,10 +1,9 @@
-import random
-import time
 import os
-import subprocess
+import random
 import shutil
+import subprocess
 import sys
-import youtube_dl
+import time
 
 import functions
 import ioutils

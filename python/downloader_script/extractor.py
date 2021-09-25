@@ -1,9 +1,6 @@
-import logging
 import re
-import urllib.request
-import requests
-import os
 
+import requests
 import youtube_dl
 
 import downloader

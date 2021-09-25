@@ -13,10 +13,10 @@ import safer
 import downloader
 import functions
 import ioutils
-import workflow_ydl
-import workflow_wget
-import workflow_watcher
 import workflow_animescrapper
+import workflow_watcher
+import workflow_wget
+import workflow_ydl
 from dto import dto
 
 
@@ -301,7 +301,7 @@ def wget(wget, space, accept, reject):
     dto.publishLoggerDebug('wget')
     dto.setSpace(space)
 
-    workflow_wget.wget(dto, wget)
+    workflow_wget.wget(dto, wget, accept, reject)
 
 
 # - - - - - # - - - - - # youtube-dl
